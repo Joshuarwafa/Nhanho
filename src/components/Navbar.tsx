@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router';
 import { useTheme } from 'next-themes';
-import { Menu, Moon, Phone, Sun, X } from 'lucide-react';
+import { Menu, Moon, Sun, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { CONTACT } from '@/data/content';
 
 const LINKS = [
   { to: '/', label: 'Home' },
@@ -41,7 +40,7 @@ export default function Navbar() {
           <img src="/images/logo.png" alt="Nhanho Mobility logo" className={cn('w-auto transition-all', scrolled ? 'h-12' : 'h-14 md:h-16')} />
         </Link>
 
-        <nav className="hidden items-center gap-1 lg:flex">
+        <nav className="hidden flex-1 items-center justify-end gap-1 pr-8 lg:flex">
           {LINKS.map((l) => (
             <NavLink
               key={l.to}
@@ -63,16 +62,6 @@ export default function Navbar() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <a
-            href={`tel:${CONTACT.phone1Raw}`}
-            className={cn(
-              'hidden items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold xl:flex',
-              scrolled ? 'text-navy dark:text-white' : 'text-navy lg:text-white'
-            )}
-          >
-            <Phone className="h-4 w-4" />
-            {CONTACT.phone1}
-          </a>
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             aria-label="Toggle dark mode"

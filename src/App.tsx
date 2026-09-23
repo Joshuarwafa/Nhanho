@@ -8,6 +8,7 @@ import Footer from '@/components/Footer';
 import WhatsAppFab from '@/components/WhatsAppFab';
 import CursorGlow from '@/components/CursorGlow';
 import PageTransition from '@/components/PageTransition';
+import AdminGuard from '@/components/admin/AdminGuard';
 import Home from '@/pages/Home';
 import Fleet from '@/pages/Fleet';
 import Services from '@/pages/Services';
@@ -15,6 +16,10 @@ import Corporate from '@/pages/Corporate';
 import About from '@/pages/About';
 import Contact from '@/pages/Contact';
 import Booking from '@/pages/Booking';
+import AdminLogin from '@/pages/admin/Login';
+import AdminDashboard from '@/pages/admin/Dashboard';
+import AdminBookings from '@/pages/admin/Bookings';
+import AdminFleet from '@/pages/admin/Fleet';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -24,12 +29,10 @@ function ScrollToTop() {
   return null;
 }
 
-export default function App() {
+function PublicSite() {
   const location = useLocation();
-
   return (
-    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
-      <ScrollToTop />
+    <>
       <CursorGlow />
       <Navbar />
       <main>
@@ -48,6 +51,27 @@ export default function App() {
       </main>
       <Footer />
       <WhatsAppFab />
+    </>
+  );
+}
+
+export default function App() {
+  const location = useLocation();
+  const isAdmin = location.pathname.startsWith('/admin');
+
+  return (
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+      <ScrollToTop />
+      {isAdmin ? (
+        <Routes>
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
+          <Route path="/admin/bookings" element={<AdminGuard><AdminBookings /></AdminGuard>} />
+          <Route path="/admin/fleet" element={<AdminGuard><AdminFleet /></AdminGuard>} />
+        </Routes>
+      ) : (
+        <PublicSite />
+      )}
       <Toaster richColors position="top-center" />
     </ThemeProvider>
   );

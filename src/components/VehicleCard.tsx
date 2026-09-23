@@ -5,18 +5,18 @@ import { formatUSD, type Vehicle } from '@/data/fleet';
 
 interface Props {
   v: Vehicle;
-  availability?: 'available' | 'limited' | 'booked';
+  availability?: 'available' | 'booked' | 'unavailable';
   bookState?: Record<string, unknown>;
 }
 
 const AVAIL_STYLE = {
   available: { label: 'Available', cls: 'bg-brand-green/15 text-brand-green-dark dark:text-brand-green' },
-  limited: { label: 'Limited', cls: 'bg-brand-orange/15 text-brand-orange-dark dark:text-brand-orange' },
   booked: { label: 'Booked', cls: 'bg-red-500/15 text-red-600 dark:text-red-400' },
+  unavailable: { label: 'Unavailable', cls: 'bg-navy/15 text-navy dark:bg-white/15 dark:text-white' },
 } as const;
 
 export default function VehicleCard({ v, availability, bookState }: Props) {
-  const booked = availability === 'booked';
+  const booked = availability === 'booked' || availability === 'unavailable';
 
   return (
     <div className="lift group flex h-full flex-col overflow-hidden rounded-3xl border border-navy/8 bg-card dark:border-white/10">
@@ -102,7 +102,7 @@ export default function VehicleCard({ v, availability, bookState }: Props) {
               : 'bg-navy text-white hover:-translate-y-0.5 hover:bg-brand-orange'
           )}
         >
-          {booked ? 'Unavailable for dates' : 'Book now'}
+          {availability === 'unavailable' ? 'Currently unavailable' : booked ? 'Unavailable for dates' : 'Book now'}
           {!booked && <ArrowRight className="h-4 w-4" />}
         </Link>
       </div>

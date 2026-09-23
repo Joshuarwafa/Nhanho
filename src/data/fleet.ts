@@ -233,18 +233,6 @@ export const PROMO_CODES: Record<string, number> = {
   SAFARI5: 0.05,
 };
 
-/** Deterministic pseudo-availability so results are stable for a given date range. */
-export function availabilityFor(vehicleId: string, pickup: Date | null, days: number) {
-  if (!pickup || days <= 0) return 'available' as const;
-  const key = `${vehicleId}-${pickup.toISOString().slice(0, 10)}-${days}`;
-  let h = 0;
-  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
-  const r = h % 10;
-  if (r < 2) return 'booked' as const;
-  if (r < 4) return 'limited' as const;
-  return 'available' as const;
-}
-
 export function rateFor(v: Vehicle, days: number) {
   if (days >= 30) return { perDay: v.monthly, tier: 'Monthly rate' };
   if (days >= 7) return { perDay: v.weekly, tier: 'Weekly rate' };

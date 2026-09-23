@@ -7,7 +7,8 @@ import Reveal from '@/components/Reveal';
 import SectionHeading from '@/components/SectionHeading';
 import VehicleCard from '@/components/VehicleCard';
 import { DateField } from '@/components/BookingWidget';
-import { CATEGORIES, FLEET, availabilityFor } from '@/data/fleet';
+import { CATEGORIES, FLEET } from '@/data/fleet';
+import { useFleetAvailability } from '@/hooks/useFleetAvailability';
 
 type Sort = 'featured' | 'low' | 'high';
 
@@ -21,6 +22,7 @@ export default function Fleet() {
 
   const days = pickup && dropoff ? Math.max(1, differenceInCalendarDays(dropoff, pickup)) : 0;
   const bookState = { pickup: pickup?.toISOString(), dropoff: dropoff?.toISOString() };
+  const { availability } = useFleetAvailability(pickup, days);
 
   const list = useMemo(() => {
     let out = FLEET.filter((v) => (cat === 'all' || v.category === cat) && (trans === 'all' || v.transmission === trans));
@@ -109,7 +111,7 @@ export default function Fleet() {
         <div className="grid gap-6 py-12 sm:grid-cols-2 lg:grid-cols-3">
           {list.map((v, i) => (
             <Reveal key={v.id} delay={(i % 3) * 90} className="h-full">
-              <VehicleCard v={v} availability={availabilityFor(v.id, pickup ?? null, days)} bookState={bookState} />
+              <VehicleCard v={v} availability={availability[v.id] ?? 'available'} bookState={bookState} />
             </Reveal>
           ))}
         </div>

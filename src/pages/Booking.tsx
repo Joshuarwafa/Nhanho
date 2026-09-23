@@ -10,12 +10,15 @@ import { toast } from 'sonner';
 import Reveal from '@/components/Reveal';
 import { DateField } from '@/components/BookingWidget';
 import LocationField from '@/components/LocationField';
+import VehicleCalendarPopover from '@/components/VehicleCalendarPopover';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
   DRIVER_OPTIONS, EXTRAS, FLEET, LOCATIONS, PROMO_CODES,
-  availabilityFor, formatUSD, rateFor, type Vehicle,
+  formatUSD, rateFor, type Vehicle,
 } from '@/data/fleet';
+import { useFleetAvailability } from '@/hooks/useFleetAvailability';
+import { createBooking, BookingConflictError } from '@/lib/bookings';
 
 const STEPS = ['Dates & location', 'Choose vehicle', 'Configure', 'Your details', 'Payment', 'Confirmed'];
 
@@ -60,6 +63,7 @@ export default function Booking() {
 
   const days = pickup && dropoff ? Math.max(1, differenceInCalendarDays(dropoff, pickup)) : 0;
   const vehicle: Vehicle | undefined = FLEET.find((v) => v.id === vehicleId);
+  const { availability, loading: availabilityLoading } = useFleetAvailability(pickup, days);
 
   const quote = useMemo(() => {
     if (!vehicle || days <= 0) return null;
@@ -79,10 +83,10 @@ export default function Booking() {
 
   const availableVehicles = useMemo(
     () =>
-      FLEET.map((v) => ({ v, avail: availabilityFor(v.id, pickup ?? null, days) })).filter(
-        (x) => x.avail !== 'booked'
+      FLEET.map((v) => ({ v, avail: availability[v.id] ?? 'available' })).filter(
+        (x) => x.avail === 'available'
       ),
-    [pickup, days]
+    [availability]
   );
 
   function applyPromo() {
@@ -96,33 +100,52 @@ export default function Booking() {
     }
   }
 
-  function confirmPayment() {
-    if (!method || !quote || !vehicle) return;
+  async function confirmPayment() {
+    if (!method || !quote || !vehicle || !pickup || !dropoff) return;
     setProcessing(true);
-    setTimeout(() => {
-      const ref = `NM-${new Date().getFullYear()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
-      setBookingRef(ref);
-      setProcessing(false);
-      setStep(5);
-      const record = {
-        ref,
-        vehicle: vehicle.name,
-        location,
+    const ref = `NM-${new Date().getFullYear()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+
+    try {
+      // Simulated payment gateway delay — the real charge/webhook step comes later.
+      await new Promise((resolve) => setTimeout(resolve, 1400));
+
+      await createBooking({
+        reference: ref,
+        vehicleId: vehicle.id,
+        pickupLocation: location,
         destination,
-        pickup: pickup?.toISOString(),
-        dropoff: dropoff?.toISOString(),
-        days,
+        startDate: pickup,
+        endDate: dropoff,
         driver,
         extras,
         total: quote.total,
-        method,
-        customer,
+        guestName: customer.name,
+        guestEmail: customer.email,
+        guestPhone: customer.phone,
+      });
+
+      setBookingRef(ref);
+      setStep(5);
+      const record = {
+        ref, vehicle: vehicle.name, location, destination,
+        pickup: pickup.toISOString(), dropoff: dropoff.toISOString(),
+        days, driver, extras, total: quote.total, method, customer,
         createdAt: new Date().toISOString(),
       };
       const prev = JSON.parse(localStorage.getItem('nm-bookings') ?? '[]');
       localStorage.setItem('nm-bookings', JSON.stringify([...prev, record]));
       toast.success('Payment confirmed — booking reserved');
-    }, 1800);
+    } catch (err) {
+      if (err instanceof BookingConflictError) {
+        toast.error(err.message);
+        setStep(1);
+      } else {
+        console.error('Booking failed', err);
+        toast.error('Something went wrong while confirming your booking. Please try again.');
+      }
+    } finally {
+      setProcessing(false);
+    }
   }
 
   const canNext =
@@ -212,19 +235,25 @@ export default function Booking() {
           {/* STEP 1 — vehicle */}
           {step === 1 && (
             <div>
-              <h2 className="font-display text-xl font-bold text-navy dark:text-white">
+              <h2 className="flex items-center gap-2 font-display text-xl font-bold text-navy dark:text-white">
+                {availabilityLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
                 {availableVehicles.length} vehicles available for your dates
               </h2>
               <div className="mt-6 space-y-4">
-                {availableVehicles.map(({ v, avail }, i) => {
+                {availableVehicles.map(({ v }, i) => {
                   const r = rateFor(v, days);
                   const selected = vehicleId === v.id;
                   return (
                     <Reveal key={v.id} delay={Math.min(i * 60, 300)}>
-                      <button
+                      <div
+                        role="button"
+                        tabIndex={0}
                         onClick={() => setVehicleId(v.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') setVehicleId(v.id);
+                        }}
                         className={cn(
-                          'flex w-full items-center gap-5 rounded-3xl border-2 bg-card p-4 text-left transition-all',
+                          'flex w-full cursor-pointer items-center gap-5 rounded-3xl border-2 bg-card p-4 text-left transition-all',
                           selected
                             ? 'border-brand-orange shadow-xl shadow-brand-orange/10'
                             : 'border-navy/8 hover:border-navy/25 dark:border-white/10'
@@ -237,11 +266,7 @@ export default function Booking() {
                             <span className="rounded-full bg-navy/[0.06] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-navy dark:bg-white/10 dark:text-white">
                               {v.categoryLabel}
                             </span>
-                            {avail === 'limited' && (
-                              <span className="rounded-full bg-brand-orange/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand-orange-dark dark:text-brand-orange">
-                                Limited
-                              </span>
-                            )}
+                            <VehicleCalendarPopover vehicleId={v.id} vehicleName={v.name} />
                           </div>
                           <p className="mt-1 text-xs text-muted-foreground">
                             {v.seats} seats · {v.transmission} · {v.fuel} · {v.bags} bags
@@ -264,7 +289,7 @@ export default function Booking() {
                             <Check className="h-4 w-4" />
                           </span>
                         </div>
-                      </button>
+                      </div>
                     </Reveal>
                   );
                 })}
