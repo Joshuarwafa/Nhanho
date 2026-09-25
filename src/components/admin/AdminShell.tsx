@@ -1,7 +1,7 @@
 import { type ReactNode } from 'react';
 import { NavLink } from 'react-router';
 import type { Session } from '@supabase/supabase-js';
-import { CalendarClock, Car, LayoutDashboard, LogOut, ShieldCheck } from 'lucide-react';
+import { CalendarClock, Car, DollarSign, LayoutDashboard, LogOut, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { signOutAdmin } from '@/lib/auth';
 import { useNoIndex } from '@/hooks/useNoIndex';
@@ -10,6 +10,7 @@ const NAV = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/admin/bookings', label: 'Bookings', icon: CalendarClock, end: false },
   { to: '/admin/fleet', label: 'Fleet', icon: Car, end: false },
+  { to: '/admin/pricing', label: 'Pricing', icon: DollarSign, end: false },
 ];
 
 export default function AdminShell({ children, session }: { children: ReactNode; session: Session | null }) {

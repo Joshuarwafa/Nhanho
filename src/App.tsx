@@ -20,6 +20,7 @@ import AdminLogin from '@/pages/admin/Login';
 import AdminDashboard from '@/pages/admin/Dashboard';
 import AdminBookings from '@/pages/admin/Bookings';
 import AdminFleet from '@/pages/admin/Fleet';
+import AdminPricing from '@/pages/admin/Pricing';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -68,6 +69,7 @@ export default function App() {
           <Route path="/admin" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
           <Route path="/admin/bookings" element={<AdminGuard><AdminBookings /></AdminGuard>} />
           <Route path="/admin/fleet" element={<AdminGuard><AdminFleet /></AdminGuard>} />
+          <Route path="/admin/pricing" element={<AdminGuard><AdminPricing /></AdminGuard>} />
         </Routes>
       ) : (
         <PublicSite />

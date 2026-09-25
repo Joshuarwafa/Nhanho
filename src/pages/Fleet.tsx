@@ -7,7 +7,8 @@ import Reveal from '@/components/Reveal';
 import SectionHeading from '@/components/SectionHeading';
 import VehicleCard from '@/components/VehicleCard';
 import { DateField } from '@/components/BookingWidget';
-import { CATEGORIES, FLEET } from '@/data/fleet';
+import { CATEGORIES } from '@/data/fleet';
+import { useFleet } from '@/hooks/useFleet';
 import { useFleetAvailability } from '@/hooks/useFleetAvailability';
 
 type Sort = 'featured' | 'low' | 'high';
@@ -23,13 +24,14 @@ export default function Fleet() {
   const days = pickup && dropoff ? Math.max(1, differenceInCalendarDays(dropoff, pickup)) : 0;
   const bookState = { pickup: pickup?.toISOString(), dropoff: dropoff?.toISOString() };
   const { availability } = useFleetAvailability(pickup, days);
+  const { fleet } = useFleet();
 
   const list = useMemo(() => {
-    let out = FLEET.filter((v) => (cat === 'all' || v.category === cat) && (trans === 'all' || v.transmission === trans));
+    let out = fleet.filter((v) => (cat === 'all' || v.category === cat) && (trans === 'all' || v.transmission === trans));
     if (sort === 'low') out = [...out].sort((a, b) => a.daily - b.daily);
     if (sort === 'high') out = [...out].sort((a, b) => b.daily - a.daily);
     return out;
-  }, [cat, trans, sort]);
+  }, [fleet, cat, trans, sort]);
 
   return (
     <div>

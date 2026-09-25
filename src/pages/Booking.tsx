@@ -14,9 +14,10 @@ import VehicleCalendarPopover from '@/components/VehicleCalendarPopover';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  DRIVER_OPTIONS, EXTRAS, FLEET, LOCATIONS,
+  DRIVER_OPTIONS, EXTRAS, LOCATIONS,
   formatUSD, rateFor, type Vehicle,
 } from '@/data/fleet';
+import { useFleet } from '@/hooks/useFleet';
 import { useFleetAvailability } from '@/hooks/useFleetAvailability';
 import { createBooking, BookingConflictError, PAYMENT_DEADLINE_HOURS } from '@/lib/bookings';
 
@@ -61,8 +62,9 @@ export default function Booking() {
   const [bookingRef, setBookingRef] = useState<string | null>(null);
   const [paymentDeadline, setPaymentDeadline] = useState<Date | null>(null);
 
+  const { fleet } = useFleet();
   const days = pickup && dropoff ? Math.max(1, differenceInCalendarDays(dropoff, pickup)) : 0;
-  const vehicle: Vehicle | undefined = FLEET.find((v) => v.id === vehicleId);
+  const vehicle: Vehicle | undefined = fleet.find((v) => v.id === vehicleId);
   const { availability, loading: availabilityLoading } = useFleetAvailability(pickup, days);
 
   useEffect(() => {
@@ -86,10 +88,10 @@ export default function Booking() {
 
   const availableVehicles = useMemo(
     () =>
-      FLEET.map((v) => ({ v, avail: availability[v.id] ?? 'available' })).filter(
+      fleet.map((v) => ({ v, avail: availability[v.id] ?? 'available' })).filter(
         (x) => x.avail === 'available'
       ),
-    [availability]
+    [fleet, availability]
   );
 
   async function confirmPayment() {

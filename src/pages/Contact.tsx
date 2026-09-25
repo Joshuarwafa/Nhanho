@@ -41,7 +41,6 @@ export default function Contact() {
                   <Phone className="h-6 w-6 text-brand-orange" />
                   <h3 className="mt-4 font-display text-sm font-bold text-navy dark:text-white">Call us</h3>
                   <p className="mt-1 text-sm text-muted-foreground">{CONTACT.phone1}</p>
-                  <p className="text-sm text-muted-foreground">{CONTACT.phone2}</p>
                 </a>
                 <a
                   href={`https://wa.me/${CONTACT.whatsapp}`}

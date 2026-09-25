@@ -1,9 +1,8 @@
 export const CONTACT = {
   email: 'info@nhanhomobility.co.zw',
-  phone1: '+263 788 546 988',
-  phone2: '+263 718 307 344',
-  phone1Raw: '+263788546988',
-  whatsapp: '263788546988',
+  phone1: '+263 77 564 4717',
+  phone1Raw: '+263775644717',
+  whatsapp: '263775644717',
   domain: 'nhanhomobility.co.zw',
   address: 'Harare, Zimbabwe',
   hours: [

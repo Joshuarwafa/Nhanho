@@ -12,13 +12,15 @@ import VehicleCard from '@/components/VehicleCard';
 import Testimonials from '@/components/Testimonials';
 import MagneticLink from '@/components/MagneticLink';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { FLEET, CATEGORIES } from '@/data/fleet';
-import { FAQS, NEWS, PARTNERS, SERVICES, STATS, WHY_US } from '@/data/content';
+import { CATEGORIES } from '@/data/fleet';
+import { CONTACT, FAQS, NEWS, PARTNERS, SERVICES, STATS, WHY_US } from '@/data/content';
+import { useFleet } from '@/hooks/useFleet';
 
 const SERVICE_ICONS = [Car, Building2, Plane, KeyRound, Users, Wrench, Briefcase, MapPinned, Smartphone];
 
 export default function Home() {
-  const featured = FLEET.filter((v) => v.popular).slice(0, 4);
+  const { fleet } = useFleet();
+  const featured = fleet.filter((v) => v.popular).slice(0, 4);
 
   return (
     <div className="overflow-x-clip">
@@ -323,10 +325,10 @@ export default function Home() {
               Book your vehicle
             </MagneticLink>
             <a
-              href="tel:+263788546988"
+              href={`tel:${CONTACT.phone1Raw}`}
               className="rounded-full border border-white/30 px-8 py-4 text-sm font-semibold text-white backdrop-blur transition-colors hover:bg-white/10"
             >
-              Call +263 788 546 988
+              Call {CONTACT.phone1}
             </a>
           </div>
         </Reveal>

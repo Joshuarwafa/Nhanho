@@ -96,7 +96,7 @@ export default function Footer() {
             </form>
             <ul className="mt-6 space-y-3 text-sm text-white/70">
               <li className="flex items-center gap-3">
-                <Phone className="h-4 w-4 shrink-0 text-brand-green" /> {CONTACT.phone1} · {CONTACT.phone2}
+                <Phone className="h-4 w-4 shrink-0 text-brand-green" /> {CONTACT.phone1}
               </li>
               <li className="flex items-center gap-3">
                 <Mail className="h-4 w-4 shrink-0 text-brand-green" /> {CONTACT.email}

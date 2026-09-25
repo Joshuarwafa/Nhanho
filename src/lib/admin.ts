@@ -68,6 +68,18 @@ export async function setVehicleStatus(vehicle: VehicleRow, newStatus: VehicleSt
   if (logErr) throw logErr;
 }
 
+export interface VehiclePrices {
+  daily: number;
+  weekly: number;
+  monthly: number;
+}
+
+/** Updates a vehicle's rates — this is what the public site's booking quotes and listings actually read. */
+export async function updateVehiclePrices(vehicleId: string, prices: VehiclePrices) {
+  const { error } = await supabase.from('vehicles').update(prices).eq('id', vehicleId);
+  if (error) throw error;
+}
+
 /** Recent vehicle status changes — every manual admin action, with who/when/why. Omit vehicleId for the fleet-wide feed. */
 export async function fetchStatusLog(vehicleId?: string, limit = 20): Promise<VehicleStatusLogRow[]> {
   let query = supabase.from('vehicle_status_log').select('*').order('created_at', { ascending: false }).limit(limit);
