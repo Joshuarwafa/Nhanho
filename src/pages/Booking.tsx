@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router';
 import { differenceInCalendarDays, format, addDays } from 'date-fns';
 import {
-  ArrowLeft, ArrowRight, BadgePercent, Banknote, CalendarDays, Car, Check, CheckCircle2,
-  CreditCard, Loader2, MapPin, Printer, ShieldCheck, Smartphone, User, Wallet,
+  ArrowLeft, ArrowRight, Banknote, CalendarDays, Car, Check,
+  Coins, CreditCard, Loader2, MapPin, Printer, ShieldCheck, Smartphone, User, Wallet,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -14,20 +14,21 @@ import VehicleCalendarPopover from '@/components/VehicleCalendarPopover';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  DRIVER_OPTIONS, EXTRAS, FLEET, LOCATIONS, PROMO_CODES,
+  DRIVER_OPTIONS, EXTRAS, FLEET, LOCATIONS,
   formatUSD, rateFor, type Vehicle,
 } from '@/data/fleet';
 import { useFleetAvailability } from '@/hooks/useFleetAvailability';
-import { createBooking, BookingConflictError } from '@/lib/bookings';
+import { createBooking, BookingConflictError, PAYMENT_DEADLINE_HOURS } from '@/lib/bookings';
 
 const STEPS = ['Dates & location', 'Choose vehicle', 'Configure', 'Your details', 'Payment', 'Confirmed'];
 
 const PAYMENT_METHODS = [
-  { id: 'paynow', label: 'PayNow', desc: 'Zimbabwe’s online payment gateway', icon: Wallet },
-  { id: 'ecocash', label: 'EcoCash', desc: 'Pay from your EcoCash wallet', icon: Smartphone },
-  { id: 'innbucks', label: 'InnBucks', desc: 'Pay via InnBucks', icon: Smartphone },
-  { id: 'card', label: 'Visa / Mastercard', desc: 'Secure card payment', icon: CreditCard },
-  { id: 'bank', label: 'Bank transfer', desc: 'EFT — booking held 24 hours', icon: Banknote },
+  { id: 'cash', label: 'Cash', desc: 'Pay the driver or at pickup', icon: Coins, enabled: true },
+  { id: 'paynow', label: 'PayNow', desc: 'Zimbabwe’s online payment gateway', icon: Wallet, enabled: false },
+  { id: 'ecocash', label: 'EcoCash', desc: 'Pay from your EcoCash wallet', icon: Smartphone, enabled: false },
+  { id: 'innbucks', label: 'InnBucks', desc: 'Pay via InnBucks', icon: Smartphone, enabled: false },
+  { id: 'card', label: 'Visa / Mastercard', desc: 'Secure card payment', icon: CreditCard, enabled: false },
+  { id: 'bank', label: 'Bank transfer', desc: 'EFT — booking held 24 hours', icon: Banknote, enabled: false },
 ];
 
 interface Customer {
@@ -54,16 +55,19 @@ export default function Booking() {
   const [vehicleId, setVehicleId] = useState<string | undefined>(state?.vehicleId);
   const [driver, setDriver] = useState<'self' | 'chauffeur'>('self');
   const [extras, setExtras] = useState<string[]>([]);
-  const [promo, setPromo] = useState('');
-  const [promoPct, setPromoPct] = useState(0);
   const [customer, setCustomer] = useState<Customer>({ name: '', email: '', phone: '', notes: '' });
-  const [method, setMethod] = useState<string | null>(null);
+  const [method, setMethod] = useState<string | null>('cash');
   const [processing, setProcessing] = useState(false);
   const [bookingRef, setBookingRef] = useState<string | null>(null);
+  const [paymentDeadline, setPaymentDeadline] = useState<Date | null>(null);
 
   const days = pickup && dropoff ? Math.max(1, differenceInCalendarDays(dropoff, pickup)) : 0;
   const vehicle: Vehicle | undefined = FLEET.find((v) => v.id === vehicleId);
   const { availability, loading: availabilityLoading } = useFleetAvailability(pickup, days);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+  }, [step]);
 
   const quote = useMemo(() => {
     if (!vehicle || days <= 0) return null;
@@ -75,11 +79,10 @@ export default function Booking() {
       return sum + (e ? e.perDay * days : 0);
     }, 0);
     const subtotal = base + driverCost + extrasCost;
-    const discount = Math.round(subtotal * promoPct);
-    const vat = Math.round((subtotal - discount) * 0.15);
-    const total = subtotal - discount + vat;
-    return { perDay, tier, base, driverCost, extrasCost, subtotal, discount, vat, total };
-  }, [vehicle, days, driver, extras, promoPct]);
+    const vat = Math.round(subtotal * 0.15);
+    const total = subtotal + vat;
+    return { perDay, tier, base, driverCost, extrasCost, subtotal, vat, total };
+  }, [vehicle, days, driver, extras]);
 
   const availableVehicles = useMemo(
     () =>
@@ -89,27 +92,13 @@ export default function Booking() {
     [availability]
   );
 
-  function applyPromo() {
-    const code = promo.trim().toUpperCase();
-    if (PROMO_CODES[code]) {
-      setPromoPct(PROMO_CODES[code]);
-      toast.success(`Promo ${code} applied — ${PROMO_CODES[code] * 100}% off`);
-    } else {
-      setPromoPct(0);
-      toast.error('Invalid promo code');
-    }
-  }
-
   async function confirmPayment() {
     if (!method || !quote || !vehicle || !pickup || !dropoff) return;
     setProcessing(true);
     const ref = `NM-${new Date().getFullYear()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
 
     try {
-      // Simulated payment gateway delay — the real charge/webhook step comes later.
-      await new Promise((resolve) => setTimeout(resolve, 1400));
-
-      await createBooking({
+      const { paymentDeadline: deadline } = await createBooking({
         reference: ref,
         vehicleId: vehicle.id,
         pickupLocation: location,
@@ -125,23 +114,26 @@ export default function Booking() {
       });
 
       setBookingRef(ref);
+      setPaymentDeadline(deadline);
       setStep(5);
       const record = {
         ref, vehicle: vehicle.name, location, destination,
         pickup: pickup.toISOString(), dropoff: dropoff.toISOString(),
         days, driver, extras, total: quote.total, method, customer,
+        status: 'pending_payment', paymentDeadline: deadline.toISOString(),
         createdAt: new Date().toISOString(),
       };
       const prev = JSON.parse(localStorage.getItem('nm-bookings') ?? '[]');
       localStorage.setItem('nm-bookings', JSON.stringify([...prev, record]));
-      toast.success('Payment confirmed — booking reserved');
+      toast.success('Booking received — payment pending');
     } catch (err) {
       if (err instanceof BookingConflictError) {
         toast.error(err.message);
         setStep(1);
       } else {
         console.error('Booking failed', err);
-        toast.error('Something went wrong while confirming your booking. Please try again.');
+        const detail = err instanceof Error ? err.message : null;
+        toast.error(detail ? `Booking failed: ${detail}` : 'Something went wrong while confirming your booking. Please try again.');
       }
     } finally {
       setProcessing(false);
@@ -170,7 +162,7 @@ export default function Booking() {
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
           <p className="font-display text-xs font-bold uppercase tracking-[0.3em] text-brand-orange">Online booking</p>
           <h1 className="mt-3 font-display text-3xl font-bold text-white sm:text-5xl">
-            {step === 5 ? 'Booking confirmed' : 'Book your vehicle'}
+            {step === 5 ? 'Booking received' : 'Book your vehicle'}
           </h1>
         </div>
       </section>
@@ -347,26 +339,6 @@ export default function Booking() {
                 })}
               </div>
 
-              <h3 className="mt-8 font-display text-sm font-bold uppercase tracking-widest text-muted-foreground">Promo code</h3>
-              <div className="mt-3 flex max-w-sm gap-2">
-                <Input
-                  value={promo}
-                  onChange={(e) => setPromo(e.target.value)}
-                  placeholder="e.g. NHANHO10"
-                  className={inputCls}
-                />
-                <button
-                  onClick={applyPromo}
-                  className="flex shrink-0 items-center gap-2 rounded-2xl bg-navy px-5 text-sm font-bold text-white transition-colors hover:bg-brand-orange"
-                >
-                  <BadgePercent className="h-4 w-4" /> Apply
-                </button>
-              </div>
-              {promoPct > 0 && (
-                <p className="mt-2 text-xs font-bold text-brand-green-dark dark:text-brand-green">
-                  {promoPct * 100}% discount applied to your rental
-                </p>
-              )}
             </Reveal>
           )}
 
@@ -421,17 +393,29 @@ export default function Booking() {
                 {PAYMENT_METHODS.map((m) => (
                   <button
                     key={m.id}
-                    onClick={() => setMethod(m.id)}
+                    disabled={!m.enabled}
+                    onClick={() => m.enabled && setMethod(m.id)}
                     className={cn(
                       'flex items-center gap-4 rounded-3xl border-2 p-5 text-left transition-all',
-                      method === m.id ? 'border-brand-orange bg-brand-orange/5' : 'border-navy/8 dark:border-white/10'
+                      !m.enabled
+                        ? 'cursor-not-allowed border-navy/8 opacity-45 dark:border-white/10'
+                        : method === m.id
+                          ? 'border-brand-orange bg-brand-orange/5'
+                          : 'border-navy/8 dark:border-white/10'
                     )}
                   >
-                    <span className={cn('flex h-11 w-11 items-center justify-center rounded-2xl', method === m.id ? 'bg-brand-orange text-white' : 'bg-navy/[0.06] text-navy dark:bg-white/10 dark:text-white')}>
+                    <span className={cn('flex h-11 w-11 items-center justify-center rounded-2xl', method === m.id && m.enabled ? 'bg-brand-orange text-white' : 'bg-navy/[0.06] text-navy dark:bg-white/10 dark:text-white')}>
                       <m.icon className="h-5 w-5" />
                     </span>
                     <span>
-                      <span className="block font-display text-sm font-bold text-navy dark:text-white">{m.label}</span>
+                      <span className="flex items-center gap-2">
+                        <span className="block font-display text-sm font-bold text-navy dark:text-white">{m.label}</span>
+                        {!m.enabled && (
+                          <span className="rounded-full bg-navy/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground dark:bg-white/10">
+                            Coming soon
+                          </span>
+                        )}
+                      </span>
                       <span className="block text-xs text-muted-foreground">{m.desc}</span>
                     </span>
                   </button>
@@ -445,16 +429,16 @@ export default function Booking() {
               >
                 {processing ? (
                   <>
-                    <Loader2 className="h-5 w-5 animate-spin" /> Processing payment…
+                    <Loader2 className="h-5 w-5 animate-spin" /> Reserving your booking…
                   </>
                 ) : (
                   <>
-                    Pay {formatUSD(quote.total)} <ArrowRight className="h-5 w-5" />
+                    Reserve — pay {formatUSD(quote.total)} in cash <ArrowRight className="h-5 w-5" />
                   </>
                 )}
               </button>
               <p className="mt-3 text-xs text-muted-foreground">
-                Demo checkout — no real charge is made. Your booking record is stored in this browser only.
+                This holds your vehicle for {formatUSD(quote.total)}, payable in cash at our office within {PAYMENT_DEADLINE_HOURS} hours. Unpaid holds are released automatically.
               </p>
             </Reveal>
           )}
@@ -462,20 +446,27 @@ export default function Booking() {
           {/* STEP 5 — confirmation */}
           {step === 5 && quote && vehicle && (
             <Reveal>
-              <div className="rounded-3xl border border-brand-green/30 bg-brand-green/5 p-8 text-center sm:p-12">
-                <span className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-brand-green text-white" style={{ animation: 'pulse-ring 2s infinite' }}>
-                  <CheckCircle2 className="h-10 w-10" />
+              <div className="rounded-3xl border border-brand-orange/30 bg-brand-orange/5 p-8 text-center sm:p-12">
+                <span className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-brand-orange text-white" style={{ animation: 'pulse-ring 2s infinite' }}>
+                  <Wallet className="h-9 w-9" />
                 </span>
                 <h2 className="mt-6 font-display text-2xl font-bold text-navy dark:text-white sm:text-3xl">
-                  You’re booked, {customer.name.split(' ')[0]}!
+                  Almost there, {customer.name.split(' ')[0]} — payment pending
                 </h2>
                 <p className="mt-3 text-muted-foreground">
                   Booking reference
                 </p>
                 <p className="mt-1 font-display text-3xl font-bold tracking-wide text-brand-orange">{bookingRef}</p>
                 <p className="mx-auto mt-4 max-w-md text-sm leading-relaxed text-muted-foreground">
-                  A confirmation and invoice have been sent to <span className="font-semibold text-navy dark:text-white">{customer.email}</span>.
-                  Present your reference and driver’s licence at pickup.
+                  Please pay <span className="font-semibold text-navy dark:text-white">{formatUSD(quote.total)}</span> in cash at our office
+                  {paymentDeadline && (
+                    <> by <span className="font-semibold text-navy dark:text-white">{format(paymentDeadline, "d MMM 'at' HH:mm")}</span></>
+                  )}
+                  {' '}— quote your reference to the cashier. Your vehicle is held until then; unpaid bookings are released automatically after {PAYMENT_DEADLINE_HOURS} hours.
+                </p>
+                <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
+                  Once the cashier records your payment, you'll receive a confirmation with a receipt number at{' '}
+                  <span className="font-semibold text-navy dark:text-white">{customer.email}</span>.
                 </p>
                 <div className="mt-8 flex flex-wrap justify-center gap-3">
                   <button
@@ -565,12 +556,6 @@ export default function Booking() {
                         <div className="flex justify-between">
                           <dt className="text-muted-foreground">Extras</dt>
                           <dd className="font-semibold text-navy dark:text-white">{formatUSD(quote.extrasCost)}</dd>
-                        </div>
-                      )}
-                      {quote.discount > 0 && (
-                        <div className="flex justify-between text-brand-green-dark dark:text-brand-green">
-                          <dt>Promo discount</dt>
-                          <dd className="font-semibold">−{formatUSD(quote.discount)}</dd>
                         </div>
                       )}
                       <div className="flex justify-between">

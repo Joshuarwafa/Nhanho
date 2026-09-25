@@ -1,11 +1,14 @@
 import { supabase } from '@/lib/supabase';
 import type { BookingStatus, DriverOption, VehicleStatus } from '@/types/database';
 
-/** 'unavailable' = pulled from service by an admin; 'booked' = a real customer reservation covers these dates. */
+/** 'unavailable' = pulled from service by an admin; 'booked' = a real reservation (paid or awaiting cash payment) covers these dates. */
 export type Availability = 'available' | 'booked' | 'unavailable';
 
-const ACTIVE_STATUSES: BookingStatus[] = ['confirmed', 'active'];
+/** Both hold the vehicle's dates: a pending one hasn't been paid yet, but the slot is reserved until it expires. */
+const HOLDING_STATUSES: BookingStatus[] = ['pending_payment', 'confirmed'];
 const UNAVAILABLE_VEHICLE_STATUSES: VehicleStatus[] = ['maintenance', 'out_of_service', 'rented'];
+
+export const PAYMENT_DEADLINE_HOURS = 48;
 
 function toISODate(d: Date) {
   return d.toISOString().slice(0, 10);
@@ -25,7 +28,7 @@ export async function fetchFleetAvailability(pickup: Date, days: number): Promis
     supabase
       .from('bookings')
       .select('vehicle_id')
-      .in('status', ACTIVE_STATUSES)
+      .in('status', HOLDING_STATUSES)
       .lte('start_date', end)
       .gte('end_date', start),
   ]);
@@ -43,14 +46,14 @@ export async function fetchFleetAvailability(pickup: Date, days: number): Promis
   return map;
 }
 
-/** Every upcoming confirmed/active date range for one vehicle — powers the availability calendar. */
+/** Every upcoming held (pending-payment or confirmed) date range for one vehicle — powers the availability calendar. */
 export async function fetchVehicleBookedRanges(vehicleId: string): Promise<{ start: Date; end: Date }[]> {
   const today = toISODate(new Date());
   const { data, error } = await supabase
     .from('bookings')
     .select('start_date, end_date')
     .eq('vehicle_id', vehicleId)
-    .in('status', ACTIVE_STATUSES)
+    .in('status', HOLDING_STATUSES)
     .gte('end_date', today);
 
   if (error) throw error;
@@ -80,8 +83,16 @@ export class BookingConflictError extends Error {
   }
 }
 
-/** Writes the booking to the database. Postgres itself rejects overlapping dates for the same vehicle (see 002_prevent_double_booking.sql), surfaced here as BookingConflictError. */
-export async function createBooking(input: CreateBookingInput) {
+/**
+ * Writes the booking to the database as 'pending_payment' — the slot is held (Postgres itself
+ * rejects overlapping dates for the same vehicle, see 002_prevent_double_booking.sql, surfaced
+ * here as BookingConflictError) but the booking only becomes 'confirmed' once a cashier records
+ * the cash payment. If it's still unpaid past the returned deadline, a scheduled job releases it
+ * back to 'available' automatically (see 003_cash_payments.sql).
+ */
+export async function createBooking(input: CreateBookingInput): Promise<{ paymentDeadline: Date }> {
+  const paymentDeadline = new Date(Date.now() + PAYMENT_DEADLINE_HOURS * 3600_000);
+
   const { error } = await supabase.from('bookings').insert({
     reference: input.reference,
     vehicle_id: input.vehicleId,
@@ -96,7 +107,8 @@ export async function createBooking(input: CreateBookingInput) {
     driver: input.driver,
     extras: input.extras,
     total: input.total,
-    status: 'confirmed',
+    status: 'pending_payment',
+    payment_deadline: paymentDeadline.toISOString(),
   });
 
   if (error) {
@@ -104,4 +116,6 @@ export async function createBooking(input: CreateBookingInput) {
     if (error.code === '23P01') throw new BookingConflictError();
     throw error;
   }
+
+  return { paymentDeadline };
 }

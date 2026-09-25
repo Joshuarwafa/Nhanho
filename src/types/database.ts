@@ -7,7 +7,12 @@
  */
 
 export type VehicleStatus = 'available' | 'rented' | 'reserved' | 'maintenance' | 'out_of_service';
-export type BookingStatus = 'confirmed' | 'active' | 'completed' | 'cancelled';
+/**
+ * pending_payment -> confirmed -> completed
+ *                 -> expired   (auto, unpaid past payment_deadline)
+ *                 -> cancelled (by customer or staff)
+ */
+export type BookingStatus = 'pending_payment' | 'confirmed' | 'expired' | 'cancelled' | 'completed';
 export type DriverOption = 'self' | 'chauffeur';
 
 export type VehicleRow = {
@@ -49,6 +54,17 @@ export type BookingRow = {
   extras: string[];
   total: number;
   status: BookingStatus;
+  payment_deadline: string;
+  created_at: string;
+};
+
+export type PaymentRow = {
+  id: string;
+  booking_id: string;
+  amount: number;
+  receipt_number: string;
+  cashier_id: string | null;
+  note: string | null;
   created_at: string;
 };
 
@@ -106,6 +122,12 @@ export type Database = {
         Row: AdminRow;
         Insert: Partial<AdminRow> & Pick<AdminRow, 'user_id'>;
         Update: Partial<AdminRow>;
+        Relationships: [];
+      };
+      payments: {
+        Row: PaymentRow;
+        Insert: Partial<PaymentRow> & Pick<PaymentRow, 'booking_id' | 'amount' | 'receipt_number'>;
+        Update: Partial<PaymentRow>;
         Relationships: [];
       };
     };

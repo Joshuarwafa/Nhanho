@@ -227,12 +227,6 @@ export const EXTRAS = [
   { id: 'wifi', label: '4G Wi-Fi hotspot', perDay: 6 },
 ] as const;
 
-export const PROMO_CODES: Record<string, number> = {
-  NHANHO10: 0.1,
-  CORP15: 0.15,
-  SAFARI5: 0.05,
-};
-
 export function rateFor(v: Vehicle, days: number) {
   if (days >= 30) return { perDay: v.monthly, tier: 'Monthly rate' };
   if (days >= 7) return { perDay: v.weekly, tier: 'Weekly rate' };

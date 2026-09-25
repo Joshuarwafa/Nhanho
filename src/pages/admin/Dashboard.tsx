@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { formatDistanceToNow } from 'date-fns';
-import { CalendarClock, CarFront, Loader2, TrendingUp, Wrench } from 'lucide-react';
+import { CalendarClock, CarFront, Clock, Loader2, TrendingUp, Wrench } from 'lucide-react';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
-import { fetchAllBookings, fetchAllVehicles, fetchStatusLog } from '@/lib/admin';
+import { fetchAllBookings, fetchAllPayments, fetchAllVehicles, fetchStatusLog } from '@/lib/admin';
 import { FLEET, formatUSD } from '@/data/fleet';
-import type { BookingRow, VehicleRow, VehicleStatusLogRow } from '@/types/database';
+import type { BookingRow, PaymentRow, VehicleRow, VehicleStatusLogRow } from '@/types/database';
 
 function isWithinNextDays(dateStr: string, days: number) {
   const d = new Date(dateStr);
@@ -29,17 +29,19 @@ const STATUS_DOT: Record<string, string> = {
 export default function AdminDashboard() {
   const [bookings, setBookings] = useState<BookingRow[] | null>(null);
   const [vehicles, setVehicles] = useState<VehicleRow[] | null>(null);
+  const [payments, setPayments] = useState<PaymentRow[] | null>(null);
   const [log, setLog] = useState<VehicleStatusLogRow[] | null>(null);
 
   useEffect(() => {
-    Promise.all([fetchAllBookings(), fetchAllVehicles(), fetchStatusLog(undefined, 8)]).then(([b, v, l]) => {
+    Promise.all([fetchAllBookings(), fetchAllVehicles(), fetchAllPayments(), fetchStatusLog(undefined, 8)]).then(([b, v, p, l]) => {
       setBookings(b);
       setVehicles(v);
+      setPayments(p);
       setLog(l);
     });
   }, []);
 
-  if (!bookings || !vehicles || !log) {
+  if (!bookings || !vehicles || !payments || !log) {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-navy dark:text-white" />
@@ -47,18 +49,18 @@ export default function AdminDashboard() {
     );
   }
 
-  const active = bookings.filter((b) => b.status === 'confirmed' || b.status === 'active');
-  const upcomingPickups = active.filter((b) => isWithinNextDays(b.start_date, 7));
-  const upcomingReturns = active.filter((b) => isWithinNextDays(b.end_date, 7));
+  const pendingPayment = bookings.filter((b) => b.status === 'pending_payment');
+  const confirmed = bookings.filter((b) => b.status === 'confirmed');
+  const upcomingPickups = confirmed.filter((b) => isWithinNextDays(b.start_date, 7));
   const inMaintenance = vehicles.filter((v) => v.status === 'maintenance' || v.status === 'out_of_service');
-  const thisMonthRevenue = bookings
-    .filter((b) => b.status !== 'cancelled' && new Date(b.created_at).getMonth() === new Date().getMonth())
-    .reduce((sum, b) => sum + Number(b.total), 0);
+  const thisMonthRevenue = payments
+    .filter((p) => new Date(p.created_at).getMonth() === new Date().getMonth())
+    .reduce((sum, p) => sum + Number(p.amount), 0);
 
   const cards = [
-    { label: 'Active bookings', value: active.length, icon: CalendarClock, to: '/admin/bookings' },
+    { label: 'Awaiting cash payment', value: pendingPayment.length, icon: Clock, to: '/admin/bookings' },
+    { label: 'Confirmed bookings', value: confirmed.length, icon: CalendarClock, to: '/admin/bookings' },
     { label: 'Pickups next 7 days', value: upcomingPickups.length, icon: TrendingUp, to: '/admin/bookings' },
-    { label: 'Returns next 7 days', value: upcomingReturns.length, icon: TrendingUp, to: '/admin/bookings' },
     { label: 'In maintenance', value: inMaintenance.length, icon: Wrench, to: '/admin/fleet' },
   ];
 

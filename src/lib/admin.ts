@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import type { BookingRow, BookingStatus, VehicleRow, VehicleStatus, VehicleStatusLogRow } from '@/types/database';
+import type { BookingRow, BookingStatus, PaymentRow, VehicleRow, VehicleStatus, VehicleStatusLogRow } from '@/types/database';
 
 export async function fetchAllBookings(): Promise<BookingRow[]> {
   const { data, error } = await supabase.from('bookings').select('*').order('created_at', { ascending: false });
@@ -10,6 +10,41 @@ export async function fetchAllBookings(): Promise<BookingRow[]> {
 export async function setBookingStatus(id: string, status: BookingStatus) {
   const { error } = await supabase.from('bookings').update({ status }).eq('id', id);
   if (error) throw error;
+}
+
+/**
+ * Records a cash receipt as its own audit row, then moves the booking to 'confirmed'.
+ * Never just flips a "paid" flag on the booking — payments stays the source of truth for
+ * who took what, when, so part-payments/deposits and dispute resolution stay possible later.
+ */
+export async function confirmCashPayment(bookingId: string, amount: number, receiptNumber: string, cashierId: string, note?: string) {
+  const { error: payErr } = await supabase.from('payments').insert({
+    booking_id: bookingId,
+    amount,
+    receipt_number: receiptNumber,
+    cashier_id: cashierId,
+    note: note || null,
+  });
+  if (payErr) throw payErr;
+
+  const { error: statusErr } = await supabase.from('bookings').update({ status: 'confirmed' }).eq('id', bookingId);
+  if (statusErr) throw statusErr;
+}
+
+export async function fetchAllPayments(): Promise<PaymentRow[]> {
+  const { data, error } = await supabase.from('payments').select('*').order('created_at', { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function fetchPaymentsForBooking(bookingId: string): Promise<PaymentRow[]> {
+  const { data, error } = await supabase
+    .from('payments')
+    .select('*')
+    .eq('booking_id', bookingId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data ?? [];
 }
 
 export async function fetchAllVehicles(): Promise<VehicleRow[]> {
@@ -43,9 +78,9 @@ export async function fetchStatusLog(vehicleId?: string, limit = 20): Promise<Ve
 }
 
 export function bookingsToCSV(rows: BookingRow[]): string {
-  const headers = ['Reference', 'Vehicle', 'Guest name', 'Guest email', 'Guest phone', 'Pickup', 'Destination', 'Start', 'End', 'Driver', 'Total (USD)', 'Status', 'Created'];
+  const headers = ['Reference', 'Vehicle', 'Guest name', 'Guest email', 'Guest phone', 'Pickup', 'Destination', 'Start', 'End', 'Driver', 'Total (USD)', 'Status', 'Payment deadline', 'Created'];
   const lines = rows.map((b) =>
-    [b.reference, b.vehicle_id, b.guest_name ?? '', b.guest_email ?? '', b.guest_phone ?? '', b.pickup_location, b.destination ?? '', b.start_date, b.end_date, b.driver, b.total, b.status, b.created_at]
+    [b.reference, b.vehicle_id, b.guest_name ?? '', b.guest_email ?? '', b.guest_phone ?? '', b.pickup_location, b.destination ?? '', b.start_date, b.end_date, b.driver, b.total, b.status, b.payment_deadline, b.created_at]
       .map((v) => `"${String(v).replace(/"/g, '""')}"`)
       .join(',')
   );
