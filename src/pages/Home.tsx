@@ -14,14 +14,17 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { CATEGORIES } from '@/data/fleet';
 import { CONTACT, FAQS, NEWS, PARTNERS, SERVICES, STATS, WHY_US } from '@/data/content';
 import { useFleet } from '@/hooks/useFleet';
+import { groupByModel } from '@/lib/fleetGroups';
 
 const SERVICE_ICONS = [Car, Building2, Plane, KeyRound, Users, Wrench, Briefcase, MapPinned, Smartphone];
 
 export default function Home() {
   const { fleet } = useFleet();
-  // Always fill a full row of 4 — popular vehicles first, backfilled with the rest
-  // of the fleet if fewer than 4 are marked popular, so the grid never sits lopsided.
-  const featured = [...fleet.filter((v) => v.popular), ...fleet.filter((v) => !v.popular)].slice(0, 4);
+  // One card per model (several identical units of the same car shouldn't repeat
+  // here), popular models first, backfilled with the rest so the grid never sits
+  // lopsided with fewer than 4.
+  const models = groupByModel(fleet).map((g) => g.vehicle);
+  const featured = [...models.filter((v) => v.popular), ...models.filter((v) => !v.popular)].slice(0, 4);
 
   return (
     <div className="overflow-x-clip">

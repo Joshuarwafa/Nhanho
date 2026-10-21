@@ -11,10 +11,6 @@ import { useAdminSession } from '@/hooks/useAdminSession';
 import { CATEGORIES } from '@/data/fleet';
 import type { VehicleRow, VehicleStatus, VehicleStatusLogRow } from '@/types/database';
 
-function slugify(name: string) {
-  return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-}
-
 const STATUS_OPTIONS: VehicleStatus[] = ['available', 'rented', 'reserved', 'maintenance', 'out_of_service'];
 
 const STATUS_STYLE: Record<VehicleStatus, string> = {
@@ -79,6 +75,7 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 const EMPTY_FORM = {
   name: '',
   categoryId: CATEGORIES[0].id,
+  units: '1',
   seats: '5',
   bags: '2',
   year: String(new Date().getFullYear()),
@@ -119,22 +116,20 @@ function AddVehicleDialog({ onCreated }: { onCreated: () => void }) {
     const seats = Number(form.seats);
     const bags = Number(form.bags);
     const year = Number(form.year);
+    const units = Math.round(Number(form.units));
 
     if (!name) return toast.error('Enter a model name');
     if (!photo) return toast.error('Add a photo');
     if (!daily || daily <= 0) return toast.error('Enter a valid daily rate');
     if (!weekly || weekly <= 0) return toast.error('Enter a valid weekly rate');
     if (!monthly || monthly <= 0) return toast.error('Enter a valid monthly rate');
-
-    const id = slugify(name);
-    if (!id) return toast.error('That name needs at least one letter or number');
+    if (!units || units < 1) return toast.error('Units must be at least 1');
 
     setSubmitting(true);
     try {
       const image = await uploadVehiclePhoto(photo);
       const category = CATEGORIES.find((c) => c.id === form.categoryId)!;
-      await createVehicle({
-        id,
+      const input = {
         name,
         category: category.id,
         category_label: category.label,
@@ -149,14 +144,19 @@ function AddVehicleDialog({ onCreated }: { onCreated: () => void }) {
         monthly,
         features: form.features.split(',').map((f) => f.trim()).filter(Boolean),
         popular: form.popular,
-      });
-      toast.success(`${name} added to the fleet`);
+      };
+      // Each unit is its own row (own plate/status later) but shares everything
+      // else — createVehicle auto-suffixes the id so these don't collide.
+      for (let i = 0; i < units; i++) {
+        await createVehicle(input);
+      }
+      toast.success(units > 1 ? `${units} units of ${name} added to the fleet` : `${name} added to the fleet`);
       setOpen(false);
       reset();
       onCreated();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Could not add vehicle';
-      toast.error(msg.includes('duplicate key') ? 'A vehicle with that name already exists' : msg);
+      toast.error(err instanceof Error ? err.message : 'Could not add vehicle');
+      onCreated(); // refresh — a partial failure partway through the loop may have added some units already
     } finally {
       setSubmitting(false);
     }
@@ -200,15 +200,32 @@ function AddVehicleDialog({ onCreated }: { onCreated: () => void }) {
 
           <Field label="Model name">
             <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="e.g. Toyota Hilux" className={fieldCls} />
+            <span className="mt-1 block text-[11px] text-muted-foreground">
+              Adding more of a model already in the fleet later? Use the exact same name — the site groups same-name vehicles into one listing with a live availability count.
+            </span>
           </Field>
 
-          <Field label="Category">
-            <select value={form.categoryId} onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))} className={selectCls}>
-              {CATEGORIES.map((c) => (
-                <option key={c.id} value={c.id}>{c.label}</option>
-              ))}
-            </select>
-          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Units">
+              <Input
+                type="number"
+                min="1"
+                value={form.units}
+                onChange={(e) => setForm((f) => ({ ...f, units: e.target.value }))}
+                className={fieldCls}
+              />
+              <span className="mt-1 block text-[11px] text-muted-foreground">
+                How many identical ones you have right now.
+              </span>
+            </Field>
+            <Field label="Category">
+              <select value={form.categoryId} onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))} className={selectCls}>
+                {CATEGORIES.map((c) => (
+                  <option key={c.id} value={c.id}>{c.label}</option>
+                ))}
+              </select>
+            </Field>
+          </div>
 
           <div className="grid grid-cols-3 gap-3">
             <Field label="Seats">

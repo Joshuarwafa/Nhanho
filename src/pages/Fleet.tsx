@@ -10,6 +10,7 @@ import { DateField } from '@/components/BookingWidget';
 import { CATEGORIES } from '@/data/fleet';
 import { useFleet } from '@/hooks/useFleet';
 import { useFleetAvailability } from '@/hooks/useFleetAvailability';
+import { groupByModel } from '@/lib/fleetGroups';
 
 type Sort = 'featured' | 'low' | 'high';
 
@@ -26,18 +27,35 @@ export default function Fleet() {
   const { availability, availableFrom } = useFleetAvailability(pickup, days);
   const { fleet } = useFleet();
 
+  // One card per model (a fleet of 4 identical Vitzes is 4 rows, not 4 cards) — each
+  // group carries every unit's availability so the card can show "x of y available"
+  // and hand the booking flow a specific free unit without the customer ever seeing ids.
   const list = useMemo(() => {
-    let out = fleet.filter((v) => (cat === 'all' || v.category === cat) && (trans === 'all' || v.transmission === trans));
-    if (sort === 'low') out = [...out].sort((a, b) => a.daily - b.daily);
-    if (sort === 'high') out = [...out].sort((a, b) => b.daily - a.daily);
-    // Available vehicles first regardless of sort — a booked/unavailable car buried
+    const filtered = fleet.filter((v) => (cat === 'all' || v.category === cat) && (trans === 'all' || v.transmission === trans));
+    let groups = groupByModel(filtered).map((g) => {
+      const availableUnits = g.units.filter((u) => (availability[u.id] ?? 'available') === 'available');
+      const earliestFrom = g.units.reduce<Date | undefined>((min, u) => {
+        const d = availableFrom[u.id];
+        if (!d) return min;
+        return !min || d < min ? d : min;
+      }, undefined);
+      return {
+        ...g,
+        unitsAvailable: availableUnits.length,
+        bookVehicleId: (availableUnits[0] ?? g.units[0]).id,
+        earliestFrom,
+      };
+    });
+    if (sort === 'low') groups = [...groups].sort((a, b) => a.vehicle.daily - b.vehicle.daily);
+    if (sort === 'high') groups = [...groups].sort((a, b) => b.vehicle.daily - a.vehicle.daily);
+    // Models with a free unit first regardless of sort — a fully-booked model buried
     // below the fold is more useful than one sitting at the top of the results.
-    return [...out].sort((a, b) => {
-      const aFree = (availability[a.id] ?? 'available') === 'available';
-      const bFree = (availability[b.id] ?? 'available') === 'available';
+    return [...groups].sort((a, b) => {
+      const aFree = a.unitsAvailable > 0;
+      const bFree = b.unitsAvailable > 0;
       return aFree === bFree ? 0 : aFree ? -1 : 1;
     });
-  }, [fleet, cat, trans, sort, availability]);
+  }, [fleet, cat, trans, sort, availability, availableFrom]);
 
   return (
     <div>
@@ -114,9 +132,17 @@ export default function Fleet() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         {/* grid */}
         <div className="grid gap-6 py-12 sm:grid-cols-2 lg:grid-cols-3">
-          {list.map((v, i) => (
-            <Reveal key={v.id} delay={(i % 3) * 90} className="h-full">
-              <VehicleCard v={v} index={i} availability={availability[v.id] ?? 'available'} availableFrom={availableFrom[v.id]} bookState={bookState} />
+          {list.map((g, i) => (
+            <Reveal key={g.vehicle.id} delay={(i % 3) * 90} className="h-full">
+              <VehicleCard
+                v={g.vehicle}
+                index={i}
+                bookVehicleId={g.bookVehicleId}
+                unitsAvailable={g.unitsAvailable}
+                unitsTotal={g.units.length}
+                availableFrom={g.earliestFrom}
+                bookState={bookState}
+              />
             </Reveal>
           ))}
         </div>

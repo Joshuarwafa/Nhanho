@@ -91,7 +91,6 @@ export async function uploadVehiclePhoto(file: File): Promise<string> {
 }
 
 export interface NewVehicleInput {
-  id: string;
   name: string;
   category: string;
   category_label: string;
@@ -108,10 +107,28 @@ export interface NewVehicleInput {
   popular: boolean;
 }
 
-/** Adds a new vehicle to the catalogue — shows up on the public site immediately. */
+function slugify(name: string) {
+  return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+}
+
+/**
+ * Adds a new vehicle (one row = one physical unit) to the catalogue — shows up on the
+ * public site immediately. Multiple units of the same model are expected (a fleet of
+ * 4 identical Vitzes, say) and the public site groups same-name rows into one card with
+ * an availability count, but each unit still needs its own unique id/primary key — so
+ * this auto-suffixes (vitz, vitz-2, vitz-3, …) instead of failing on the 2nd+ one.
+ */
 export async function createVehicle(input: NewVehicleInput) {
-  const { error } = await supabase.from('vehicles').insert(input);
-  if (error) throw error;
+  const base = slugify(input.name);
+  if (!base) throw new Error('That name needs at least one letter or number');
+
+  for (let attempt = 0; attempt < 30; attempt++) {
+    const id = attempt === 0 ? base : `${base}-${attempt + 1}`;
+    const { error } = await supabase.from('vehicles').insert({ ...input, id });
+    if (!error) return;
+    if (error.code !== '23505') throw error; // not a duplicate-id conflict — a real error
+  }
+  throw new Error('Could not find a free id for this vehicle — try a more distinct name');
 }
 
 /**

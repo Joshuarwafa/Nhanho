@@ -21,6 +21,7 @@ import {
 import { useFleet } from '@/hooks/useFleet';
 import { useFleetAvailability } from '@/hooks/useFleetAvailability';
 import { createBooking, BookingConflictError, PAYMENT_DEADLINE_HOURS } from '@/lib/bookings';
+import { groupByModel } from '@/lib/fleetGroups';
 
 const STEPS = ['Dates & location', 'Choose vehicle', 'Configure', 'Your details', 'Payment', 'Confirmed'];
 
@@ -87,13 +88,14 @@ export default function Booking() {
     return { perDay, tier, base, driverCost, extrasCost, subtotal, vat, total };
   }, [vehicle, days, driver, extras]);
 
-  const availableVehicles = useMemo(
-    () =>
-      fleet.map((v) => ({ v, avail: availability[v.id] ?? 'available' })).filter(
-        (x) => x.avail === 'available'
-      ),
-    [fleet, availability]
-  );
+  // One row per model, not per physical unit — a fleet of 4 identical Vitzes shouldn't
+  // show as 4 near-identical rows. Each group carries which specific units are actually
+  // free for the chosen dates, and selecting the row books the first free one.
+  const availableGroups = useMemo(() => {
+    return groupByModel(fleet)
+      .map((g) => ({ ...g, availableUnits: g.units.filter((u) => (availability[u.id] ?? 'available') === 'available') }))
+      .filter((g) => g.availableUnits.length > 0);
+  }, [fleet, availability]);
 
   async function confirmPayment() {
     if (!method || !quote || !vehicle || !pickup || !dropoff) return;
@@ -225,20 +227,22 @@ export default function Booking() {
             <div>
               <h2 className="flex items-center gap-2 font-display text-xl font-bold text-navy dark:text-white">
                 {availabilityLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-                {availableVehicles.length} vehicles available for your dates
+                {availableGroups.length} vehicles available for your dates
               </h2>
               <div className="mt-6 space-y-4">
-                {availableVehicles.map(({ v }, i) => {
+                {availableGroups.map((g, i) => {
+                  const v = g.vehicle;
+                  const bookId = g.availableUnits[0].id;
                   const r = rateFor(v, days);
-                  const selected = vehicleId === v.id;
+                  const selected = g.units.some((u) => u.id === vehicleId);
                   return (
                     <Reveal key={v.id} delay={Math.min(i * 60, 300)}>
                       <div
                         role="button"
                         tabIndex={0}
-                        onClick={() => setVehicleId(v.id)}
+                        onClick={() => setVehicleId(bookId)}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') setVehicleId(v.id);
+                          if (e.key === 'Enter' || e.key === ' ') setVehicleId(bookId);
                         }}
                         className={cn(
                           'flex w-full cursor-pointer items-center gap-5 rounded-3xl border-2 bg-card p-4 text-left transition-all',
@@ -254,7 +258,13 @@ export default function Booking() {
                             <span className="rounded-full bg-navy/[0.06] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-navy dark:bg-white/10 dark:text-white">
                               {v.categoryLabel}
                             </span>
-                            <VehicleCalendarPopover vehicleId={v.id} vehicleName={v.name} />
+                            {g.units.length > 1 ? (
+                              <span className="rounded-full bg-brand-green/10 px-2.5 py-0.5 text-[10px] font-bold text-brand-green-dark dark:text-brand-green">
+                                {g.availableUnits.length} of {g.units.length} available
+                              </span>
+                            ) : (
+                              <VehicleCalendarPopover vehicleId={v.id} vehicleName={v.name} />
+                            )}
                           </div>
                           <p className="mt-1 text-xs text-muted-foreground">
                             {v.seats} seats · {v.transmission} · {v.fuel} · {v.bags} bags

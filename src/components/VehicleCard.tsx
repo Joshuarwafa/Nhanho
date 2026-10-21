@@ -10,6 +10,12 @@ interface Props {
   availability?: 'available' | 'booked' | 'unavailable';
   availableFrom?: Date;
   bookState?: Record<string, unknown>;
+  /** The specific unit this card actually books — defaults to v.id when there's just one. */
+  bookVehicleId?: string;
+  /** When this model has more than one physical unit, how many are free for the selected dates. */
+  unitsAvailable?: number;
+  /** Total physical units of this model in the fleet — omit (or 1) for a single-unit card. */
+  unitsTotal?: number;
 }
 
 const AVAIL_DOT = {
@@ -34,8 +40,9 @@ const CATEGORY_TAG: Record<string, string> = {
   minibus: 'Group transport',
 };
 
-export default function VehicleCard({ v, index, availability, availableFrom, bookState }: Props) {
-  const booked = availability === 'booked' || availability === 'unavailable';
+export default function VehicleCard({ v, index, availability, availableFrom, bookState, bookVehicleId, unitsAvailable, unitsTotal }: Props) {
+  const isFleet = (unitsTotal ?? 1) > 1;
+  const booked = isFleet ? (unitsAvailable ?? 0) === 0 : availability === 'booked' || availability === 'unavailable';
   const tag = v.popular ? 'Most requested' : CATEGORY_TAG[v.category] ?? v.categoryLabel;
 
   return (
@@ -71,12 +78,20 @@ export default function VehicleCard({ v, index, availability, availableFrom, boo
             <h3 className="font-display text-lg font-semibold tracking-tight text-navy dark:text-white">{v.name}</h3>
             <p className="text-xs text-muted-foreground">{v.year} · or similar</p>
           </div>
-          {availability && (
+          {isFleet ? (
             <p className="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
-              <span className={cn('h-1.5 w-1.5 rounded-full', AVAIL_DOT[availability])} />
-              {AVAIL_LABEL[availability]}
-              {availability === 'booked' && availableFrom && <>· {format(availableFrom, 'd MMM')}</>}
+              <span className={cn('h-1.5 w-1.5 rounded-full', booked ? AVAIL_DOT.booked : AVAIL_DOT.available)} />
+              {booked ? 'None free' : `${unitsAvailable} of ${unitsTotal} available`}
+              {booked && availableFrom && <>· {format(availableFrom, 'd MMM')}</>}
             </p>
+          ) : (
+            availability && (
+              <p className="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+                <span className={cn('h-1.5 w-1.5 rounded-full', AVAIL_DOT[availability])} />
+                {AVAIL_LABEL[availability]}
+                {availability === 'booked' && availableFrom && <>· {format(availableFrom, 'd MMM')}</>}
+              </p>
+            )
           )}
         </div>
 
@@ -107,7 +122,7 @@ export default function VehicleCard({ v, index, availability, availableFrom, boo
 
         <Link
           to={booked ? '#' : '/booking'}
-          state={{ ...bookState, vehicleId: v.id }}
+          state={{ ...bookState, vehicleId: bookVehicleId ?? v.id }}
           aria-disabled={booked}
           className={cn(
             'mt-6 inline-flex items-center justify-center gap-2 rounded-full py-3 font-display text-sm font-semibold transition-all',
@@ -116,7 +131,7 @@ export default function VehicleCard({ v, index, availability, availableFrom, boo
               : 'bg-navy text-white hover:-translate-y-0.5 hover:bg-navy-700'
           )}
         >
-          {availability === 'unavailable' ? 'Currently unavailable' : booked ? 'Unavailable for dates' : 'Book now'}
+          {!isFleet && availability === 'unavailable' ? 'Currently unavailable' : booked ? 'Unavailable for dates' : 'Book now'}
           {!booked && <ArrowRight className="h-4 w-4" />}
         </Link>
       </div>
