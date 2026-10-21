@@ -1,29 +1,19 @@
-import { Compass, Eye, HeartHandshake, Target } from 'lucide-react';
+import { HeartHandshake } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import Reveal from '@/components/Reveal';
-import RoadDivider from '@/components/RoadDivider';
+import PageHeader from '@/components/PageHeader';
 import SectionHeading from '@/components/SectionHeading';
 import { MILESTONES, VALUES } from '@/data/content';
 
 export default function About() {
   return (
     <div>
-      <section className="relative overflow-hidden bg-navy pb-16 pt-36">
-        <div className="absolute inset-0 opacity-15">
-          <img src="/images/hero-savanna.jpg" alt="" className="h-full w-full object-cover" />
-        </div>
-        <div className="absolute inset-0 bg-gradient-to-t from-navy-deep to-navy/70" />
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
-          <SectionHeading
-            dark
-            align="left"
-            eyebrow="About us"
-            title="The road is our promise"
-            sub="Nhanho Mobility (Private Limited) is building Zimbabwe’s most trusted, technology-driven mobility company."
-          />
-        </div>
-      </section>
-
-      <RoadDivider />
+      <PageHeader
+        eyebrow="About us"
+        title="The road is our promise"
+        sub="Nhanho Mobility (Private Limited) is building Zimbabwe’s most trusted, technology-driven mobility company."
+        image="/images/fortuner-safari.jpg"
+      />
 
       {/* story */}
       <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
@@ -50,24 +40,25 @@ export default function About() {
         </div>
       </section>
 
-      {/* mission / vision */}
+      {/* mission / vision — editorial, not a card grid. The word itself is the
+          visual anchor instead of an icon badge, divided by rules rather than
+          boxes, so it doesn't read as the same component repeated three times. */}
       <section className="bg-brand-mist py-20 dark:bg-transparent">
-        <div className="mx-auto grid max-w-7xl gap-6 px-4 sm:px-6 lg:grid-cols-3">
-          {[
-            { icon: Target, title: 'Mission', text: 'To provide safe, reliable, affordable, and technology-driven mobility solutions for individuals, businesses, and institutions.' },
-            { icon: Eye, title: 'Vision', text: 'To become Zimbabwe’s leading mobility solutions company before expanding into Southern Africa.' },
-            { icon: Compass, title: 'Promise', text: 'Every vehicle roadworthy. Every driver vetted. Every price transparent. Every call answered.' },
-          ].map((c, i) => (
-            <Reveal key={c.title} delay={i * 120} className="h-full">
-              <div className="lift h-full rounded-3xl border border-navy/8 bg-card p-8 dark:border-white/10">
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-orange/10 text-brand-orange">
-                  <c.icon className="h-6 w-6" />
-                </span>
-                <h3 className="mt-5 font-display text-xl font-bold text-navy dark:text-white">{c.title}</h3>
-                <p className="mt-3 leading-relaxed text-muted-foreground">{c.text}</p>
-              </div>
-            </Reveal>
-          ))}
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <div className="grid divide-y divide-navy/10 dark:divide-white/10 lg:grid-cols-3 lg:divide-x lg:divide-y-0">
+            {[
+              { title: 'Mission', text: 'To provide safe, reliable, affordable, and technology-driven mobility solutions for individuals, businesses, and institutions.' },
+              { title: 'Vision', text: 'To become Zimbabwe’s leading mobility solutions company before expanding into Southern Africa.' },
+              { title: 'Promise', text: 'Every vehicle roadworthy. Every driver vetted. Every price transparent. Every call answered.' },
+            ].map((c, i) => (
+              <Reveal key={c.title} delay={i * 120} className={cn('py-8 lg:py-0', i > 0 && 'lg:pl-10', i < 2 && 'lg:pr-10')}>
+                <p className="font-display text-4xl font-bold uppercase italic tracking-tight text-brand-orange/25">
+                  {c.title}
+                </p>
+                <p className="mt-4 max-w-xs text-lg leading-relaxed text-navy dark:text-white">{c.text}</p>
+              </Reveal>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -89,20 +80,22 @@ export default function About() {
         </div>
       </section>
 
-      {/* milestones */}
-      <section className="bg-navy py-24">
+      {/* milestones — kept light; the header already carries the one dark band this
+          page needs, stacking a second full-width navy section back-to-back with the
+          others reads as busy rather than premium. */}
+      <section className="bg-brand-mist py-24 dark:bg-transparent">
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
-          <SectionHeading dark eyebrow="Milestones" title="The journey so far" />
+          <SectionHeading eyebrow="Milestones" title="The journey so far" />
           <div className="relative mt-16">
-            <div className="absolute left-4 top-0 h-full w-px bg-white/15 md:left-1/2" />
+            <div className="absolute left-4 top-0 h-full w-px bg-navy/10 dark:bg-white/10 md:left-1/2" />
             {MILESTONES.map((m, i) => (
               <Reveal key={m.title} delay={i * 100} className={`relative mb-12 pl-14 md:w-1/2 md:pl-0 ${i % 2 ? 'md:ml-auto md:pl-14' : 'md:pr-14 md:text-right'}`}>
                 <span className={`absolute top-1 flex h-8 w-8 items-center justify-center rounded-full bg-brand-orange font-display text-[10px] font-bold text-white left-0 ${i % 2 ? 'md:-left-4' : 'md:left-auto md:-right-4'}`}>
                   {m.year.slice(2)}
                 </span>
                 <p className="font-display text-sm font-bold text-brand-orange">{m.year}</p>
-                <h3 className="mt-1 font-display text-xl font-bold text-white">{m.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-white/65">{m.text}</p>
+                <h3 className="mt-1 font-display text-xl font-semibold tracking-tight text-navy dark:text-white">{m.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{m.text}</p>
               </Reveal>
             ))}
           </div>

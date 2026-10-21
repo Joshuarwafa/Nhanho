@@ -80,6 +80,50 @@ export async function updateVehiclePrices(vehicleId: string, prices: VehiclePric
   if (error) throw error;
 }
 
+/** Uploads a photo to the vehicle-photos storage bucket and returns its public URL. */
+export async function uploadVehiclePhoto(file: File): Promise<string> {
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+  const path = `${crypto.randomUUID()}.${ext}`;
+  const { error } = await supabase.storage.from('vehicle-photos').upload(path, file, { cacheControl: '3600', upsert: false });
+  if (error) throw error;
+  const { data } = supabase.storage.from('vehicle-photos').getPublicUrl(path);
+  return data.publicUrl;
+}
+
+export interface NewVehicleInput {
+  id: string;
+  name: string;
+  category: string;
+  category_label: string;
+  image: string;
+  seats: number;
+  bags: number;
+  transmission: 'Automatic' | 'Manual';
+  fuel: 'Petrol' | 'Diesel' | 'Hybrid';
+  year: number;
+  daily: number;
+  weekly: number;
+  monthly: number;
+  features: string[];
+  popular: boolean;
+}
+
+/** Adds a new vehicle to the catalogue — shows up on the public site immediately. */
+export async function createVehicle(input: NewVehicleInput) {
+  const { error } = await supabase.from('vehicles').insert(input);
+  if (error) throw error;
+}
+
+/**
+ * Removes a vehicle entirely. If it has existing bookings (foreign key reference),
+ * Postgres rejects the delete rather than orphaning booking history — callers should
+ * catch that and point staff at "mark out of service" instead, which just hides it.
+ */
+export async function deleteVehicle(id: string) {
+  const { error } = await supabase.from('vehicles').delete().eq('id', id);
+  if (error) throw error;
+}
+
 /** Recent vehicle status changes — every manual admin action, with who/when/why. Omit vehicleId for the fleet-wide feed. */
 export async function fetchStatusLog(vehicleId?: string, limit = 20): Promise<VehicleStatusLogRow[]> {
   let query = supabase.from('vehicle_status_log').select('*').order('created_at', { ascending: false }).limit(limit);
@@ -87,6 +131,57 @@ export async function fetchStatusLog(vehicleId?: string, limit = 20): Promise<Ve
   const { data, error } = await query;
   if (error) throw error;
   return data ?? [];
+}
+
+export interface AdminUser {
+  user_id: string;
+  email: string;
+  created_at: string;
+}
+
+/**
+ * On a non-2xx response, supabase-js only gives a generic "non-2xx status code"
+ * error — the actual message is in the response body, reachable via error.context
+ * (a Response) *if* the function actually ran. A network/CORS failure before any
+ * response comes back wraps a plain Error there instead (no .json method), which
+ * is usually "the function isn't deployed yet" — so that gets a pointed message.
+ */
+async function invokeCreateAdmin(body: Record<string, unknown>) {
+  const { data, error } = await supabase.functions.invoke('create-admin', { body });
+  if (error) {
+    const ctx = (error as { context?: unknown }).context;
+    let serverMessage: string | null = null;
+    if (ctx && typeof ctx === 'object' && typeof (ctx as Response).json === 'function') {
+      try {
+        const parsed = await (ctx as Response).clone().json();
+        if (parsed?.error) serverMessage = parsed.error;
+      } catch {
+        // response wasn't JSON — fall through to the generic message below
+      }
+    }
+    throw new Error(
+      serverMessage ??
+        'Could not reach the create-admin function. Make sure it’s deployed in Supabase (Edge Functions) ' +
+          'and that the SUPABASE_SERVICE_ROLE_KEY secret is set.'
+    );
+  }
+  if (data?.error) throw new Error(data.error);
+  return data;
+}
+
+/** Current admin allow-list with emails — resolved server-side (the create-admin function). */
+export async function listAdmins(): Promise<AdminUser[]> {
+  const data = await invokeCreateAdmin({ action: 'list' });
+  return Array.isArray(data?.admins) ? data.admins : [];
+}
+
+/**
+ * Creates a new admin account (email + password) via the create-admin edge function,
+ * which runs with the service-role key — the client can't do this directly, since
+ * supabase.auth.signUp() would replace the caller's own session with the new one.
+ */
+export async function createAdminUser(email: string, password: string) {
+  await invokeCreateAdmin({ action: 'create', email, password });
 }
 
 export function bookingsToCSV(rows: BookingRow[]): string {

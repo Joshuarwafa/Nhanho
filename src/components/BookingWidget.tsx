@@ -66,7 +66,7 @@ export default function BookingWidget({ dark = false, className }: { dark?: bool
   return (
     <div
       className={cn(
-        'glass rounded-[28px] p-3 shadow-2xl shadow-navy/20 ring-1 ring-white/40 dark:ring-white/10',
+        'glass rounded-[28px] border-2 border-white/70 p-3 shadow-2xl shadow-navy/30 dark:border-white/15',
         className
       )}
     >

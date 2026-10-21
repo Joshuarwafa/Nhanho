@@ -5,7 +5,6 @@ import {
 } from 'lucide-react';
 import HeroSlider from '@/components/HeroSlider';
 import Reveal from '@/components/Reveal';
-import RoadDivider from '@/components/RoadDivider';
 import SectionHeading from '@/components/SectionHeading';
 import StatCounter from '@/components/StatCounter';
 import VehicleCard from '@/components/VehicleCard';
@@ -20,7 +19,9 @@ const SERVICE_ICONS = [Car, Building2, Plane, KeyRound, Users, Wrench, Briefcase
 
 export default function Home() {
   const { fleet } = useFleet();
-  const featured = fleet.filter((v) => v.popular).slice(0, 4);
+  // Always fill a full row of 4 — popular vehicles first, backfilled with the rest
+  // of the fleet if fewer than 4 are marked popular, so the grid never sits lopsided.
+  const featured = [...fleet.filter((v) => v.popular), ...fleet.filter((v) => !v.popular)].slice(0, 4);
 
   return (
     <div className="overflow-x-clip">
@@ -84,8 +85,6 @@ export default function Home() {
           </Reveal>
         </div>
       </section>
-
-      <RoadDivider />
 
       {/* ---------- Services ---------- */}
       <section className="bg-brand-mist py-24 dark:bg-transparent">
@@ -156,7 +155,7 @@ export default function Home() {
           <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {featured.map((v, i) => (
               <Reveal key={v.id} delay={i * 90} className="h-full">
-                <VehicleCard v={v} />
+                <VehicleCard v={v} index={i} />
               </Reveal>
             ))}
           </div>
@@ -198,8 +197,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      <RoadDivider flip />
 
       {/* ---------- Corporate band ---------- */}
       <section className="relative overflow-hidden py-24">

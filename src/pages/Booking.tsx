@@ -8,6 +8,7 @@ import {
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import Reveal from '@/components/Reveal';
+import PageHeader from '@/components/PageHeader';
 import { DateField } from '@/components/BookingWidget';
 import LocationField from '@/components/LocationField';
 import VehicleCalendarPopover from '@/components/VehicleCalendarPopover';
@@ -155,19 +156,12 @@ export default function Booking() {
 
   return (
     <div>
-      {/* header */}
-      <section className="relative overflow-hidden bg-navy pb-14 pt-32">
-        <div className="absolute inset-0 opacity-15">
-          <img src="/images/hero-savanna.jpg" alt="" className="h-full w-full object-cover" />
-        </div>
-        <div className="absolute inset-0 bg-gradient-to-t from-navy-deep to-navy/70" />
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
-          <p className="font-display text-xs font-bold uppercase tracking-[0.3em] text-brand-orange">Online booking</p>
-          <h1 className="mt-3 font-display text-3xl font-bold text-white sm:text-5xl">
-            {step === 5 ? 'Booking received' : 'Book your vehicle'}
-          </h1>
-        </div>
-      </section>
+      <PageHeader
+        eyebrow="Online booking"
+        title={step === 5 ? 'Booking received' : 'Book your vehicle'}
+        image="/images/corporate.jpg"
+        className="pb-14 pt-32"
+      />
 
       {/* stepper */}
       <div className="sticky top-[64px] z-30 border-b border-navy/8 bg-background/90 backdrop-blur-xl dark:border-white/10">

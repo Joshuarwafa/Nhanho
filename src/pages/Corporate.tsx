@@ -1,21 +1,21 @@
 import { useState } from 'react';
-import { Building2, CheckCircle2, FileText, Handshake, LineChart, Percent, ShieldCheck, UserCheck } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import Reveal from '@/components/Reveal';
-import RoadDivider from '@/components/RoadDivider';
+import PageHeader from '@/components/PageHeader';
 import SectionHeading from '@/components/SectionHeading';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
 const OFFERINGS = [
-  { icon: Building2, title: 'Corporate accounts', text: 'One account, consolidated monthly billing, credit terms and a dedicated portal for your team’s bookings.' },
-  { icon: FileText, title: 'Long-term rentals', text: 'Monthly and annual hire with preferential rates, scheduled maintenance included and swap vehicles when serviced.' },
-  { icon: LineChart, title: 'Fleet outsourcing', text: 'Hand us your fleet headaches — vehicles, maintenance, insurance, licensing, drivers and utilisation reporting.' },
-  { icon: UserCheck, title: 'Employee transport', text: 'Route-planned staff shuttles with shift scheduling, attendance tracking and trip reporting.' },
-  { icon: ShieldCheck, title: 'Executive mobility', text: 'Chauffeured executive vehicles for directors, visiting partners and VIP delegations.' },
-  { icon: Percent, title: 'Corporate discounts', text: 'Volume-based pricing tiers that improve as your usage grows — automatically applied to every booking.' },
-  { icon: Handshake, title: 'Service-level agreements', text: 'Guaranteed response times, vehicle standards and replacement commitments, in writing.' },
-  { icon: UserCheck, title: 'Account management', text: 'A named account manager who knows your routes, your people and your budget.' },
+  { title: 'Corporate accounts', text: 'One account, consolidated monthly billing, credit terms and a dedicated portal for your team’s bookings.' },
+  { title: 'Long-term rentals', text: 'Monthly and annual hire with preferential rates, scheduled maintenance included and swap vehicles when serviced.' },
+  { title: 'Fleet outsourcing', text: 'Hand us your fleet headaches — vehicles, maintenance, insurance, licensing, drivers and utilisation reporting.' },
+  { title: 'Employee transport', text: 'Route-planned staff shuttles with shift scheduling, attendance tracking and trip reporting.' },
+  { title: 'Executive mobility', text: 'Chauffeured executive vehicles for directors, visiting partners and VIP delegations.' },
+  { title: 'Corporate discounts', text: 'Volume-based pricing tiers that improve as your usage grows — automatically applied to every booking.' },
+  { title: 'Service-level agreements', text: 'Guaranteed response times, vehicle standards and replacement commitments, in writing.' },
+  { title: 'Account management', text: 'A named account manager who knows your routes, your people and your budget.' },
 ];
 
 const inputCls =
@@ -26,34 +26,27 @@ export default function Corporate() {
 
   return (
     <div>
-      <section className="relative overflow-hidden bg-navy pb-24 pt-36">
-        <div className="absolute inset-0 opacity-25">
-          <img src="/images/corporate.jpg" alt="" className="h-full w-full object-cover" />
-        </div>
-        <div className="absolute inset-0 bg-gradient-to-t from-navy-deep via-navy/80 to-navy/60" />
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
-          <SectionHeading
-            dark
-            align="left"
-            eyebrow="Corporate solutions"
-            title="Mobility infrastructure for serious organisations"
-            sub="From five staff shuttles to a fully outsourced national fleet — scoped, contracted and reported with enterprise rigour."
-          />
-        </div>
-      </section>
+      <PageHeader
+        eyebrow="Corporate solutions"
+        title="Mobility infrastructure for serious organisations"
+        sub="From five staff shuttles to a fully outsourced national fleet — scoped, contracted and reported with enterprise rigour."
+        image="/images/fortuner-safari.jpg"
+        className="pb-24"
+      />
 
-      <RoadDivider />
-
+      {/* numbered list, not an icon-card grid — matches the "how it works" steps
+          further down the page instead of inventing a third repeated card formula */}
       <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <SectionHeading align="left" eyebrow="What's included" title="Built for how corporates actually run" />
+        <div className="mt-12 grid gap-x-10 gap-y-10 sm:grid-cols-2">
           {OFFERINGS.map((o, i) => (
-            <Reveal key={o.title} delay={(i % 4) * 90} className="h-full">
-              <div className="lift h-full rounded-3xl border border-navy/8 bg-card p-6 dark:border-white/10">
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-navy text-white">
-                  <o.icon className="h-5 w-5" />
-                </span>
-                <h3 className="mt-5 font-display text-base font-bold text-navy dark:text-white">{o.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{o.text}</p>
+            <Reveal key={o.title} delay={(i % 4) * 90} className="flex gap-5 border-b border-navy/8 pb-8 dark:border-white/10">
+              <span className="font-display text-3xl font-bold leading-none text-brand-orange/25">
+                {String(i + 1).padStart(2, '0')}
+              </span>
+              <div>
+                <h3 className="font-display text-base font-semibold tracking-tight text-navy dark:text-white">{o.title}</h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{o.text}</p>
               </div>
             </Reveal>
           ))}

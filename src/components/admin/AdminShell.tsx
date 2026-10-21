@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { signOutAdmin } from '@/lib/auth';
 import { useNoIndex } from '@/hooks/useNoIndex';
 
+// Staff (add-admin) nav item is temporarily removed — see Staff.tsx.
 const NAV = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/admin/bookings', label: 'Bookings', icon: CalendarClock, end: false },
@@ -20,7 +21,7 @@ export default function AdminShell({ children, session }: { children: ReactNode;
     <div className="flex min-h-screen bg-brand-mist dark:bg-navy-deep">
       <aside className="hidden w-64 shrink-0 flex-col border-r border-navy/8 bg-white dark:border-white/10 dark:bg-navy sm:flex">
         <div className="flex items-center gap-2.5 border-b border-navy/8 px-6 py-5 dark:border-white/10">
-          <img src="/images/logo.png" alt="Nhanho Mobility" className="h-9 w-auto rounded-md" />
+          <img src="/images/logo.png" alt="Nhanho Mobility" className="h-9 w-auto rounded-md bg-brand-mist p-1" />
           <div>
             <p className="font-display text-sm font-bold leading-tight text-navy dark:text-white">Nhanho</p>
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-orange">Admin portal</p>
@@ -68,7 +69,7 @@ export default function AdminShell({ children, session }: { children: ReactNode;
 
       <div className="flex-1">
         <header className="flex items-center justify-between border-b border-navy/8 bg-white px-4 py-3 dark:border-white/10 dark:bg-navy sm:hidden">
-          <img src="/images/logo.png" alt="Nhanho Mobility" className="h-8 w-auto rounded-md" />
+          <img src="/images/logo.png" alt="Nhanho Mobility" className="h-8 w-auto rounded-md bg-brand-mist p-1" />
           <button onClick={() => signOutAdmin()} className="text-sm font-semibold text-red-600 dark:text-red-400">
             Sign out
           </button>

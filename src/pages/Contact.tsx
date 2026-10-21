@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { CheckCircle2, Clock, Mail, MapPin, MessageCircle, Phone } from 'lucide-react';
 import { toast } from 'sonner';
 import Reveal from '@/components/Reveal';
-import SectionHeading from '@/components/SectionHeading';
+import PageHeader from '@/components/PageHeader';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { CONTACT } from '@/data/content';
@@ -15,21 +15,12 @@ export default function Contact() {
 
   return (
     <div>
-      <section className="relative overflow-hidden bg-navy pb-16 pt-36">
-        <div className="absolute inset-0 opacity-15">
-          <img src="/images/hero-chauffeur.jpg" alt="" className="h-full w-full object-cover" />
-        </div>
-        <div className="absolute inset-0 bg-gradient-to-t from-navy-deep to-navy/70" />
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
-          <SectionHeading
-            dark
-            align="left"
-            eyebrow="Contact"
-            title="Talk to a human, any time"
-            sub="Phone, WhatsApp, email or the form below — whichever road suits you."
-          />
-        </div>
-      </section>
+      <PageHeader
+        eyebrow="Contact"
+        title="Talk to a human, any time"
+        sub="Phone, WhatsApp, email or the form below — whichever road suits you."
+        image="/images/fortuner-safari.jpg"
+      />
 
       <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
         <div className="grid gap-14 lg:grid-cols-[1fr_1.1fr]">

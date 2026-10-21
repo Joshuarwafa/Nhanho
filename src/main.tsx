@@ -14,7 +14,7 @@ if (missingEnvVars.length > 0) {
   // Supabase client), so a missing env var always produces a visible message instead of
   // a silent blank screen.
   root.render(
-    <div style={{ fontFamily: 'system-ui, sans-serif', maxWidth: 640, margin: '80px auto', padding: '0 24px', color: '#0B2447' }}>
+    <div style={{ fontFamily: 'system-ui, sans-serif', maxWidth: 640, margin: '80px auto', padding: '0 24px', color: '#113B28' }}>
       <h1 style={{ fontSize: 20, fontWeight: 700 }}>Configuration error</h1>
       <p style={{ marginTop: 12, lineHeight: 1.6 }}>
         This deployment is missing required environment variable{missingEnvVars.length > 1 ? 's' : ''}:{' '}

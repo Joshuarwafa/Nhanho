@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router';
-import { useTheme } from 'next-themes';
-import { Menu, Moon, Sun, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import Logo from './Logo';
 
 const LINKS = [
   { to: '/', label: 'Home' },
@@ -16,8 +16,12 @@ const LINKS = [
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
-  const { theme, setTheme } = useTheme();
   const location = useLocation();
+
+  // Every page has a full-bleed dark header at the top (Home's slider, or PageHeader's
+  // photo+overlay on inner pages), so the navbar can start transparent-with-white-text
+  // everywhere and switch to a light background with dark text once scrolled.
+  const light = scrolled;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -32,12 +36,19 @@ export default function Navbar() {
     <header
       className={cn(
         'fixed inset-x-0 top-0 z-50 transition-all duration-500',
-        scrolled ? 'glass shadow-lg shadow-navy/5 py-2' : 'bg-transparent py-4'
+        light ? 'glass shadow-lg shadow-navy/5 py-2' : 'bg-transparent py-4'
       )}
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
-        <Link to="/" className="flex items-center gap-3" aria-label="Nhanho Mobility home">
-          <img src="/images/logo.png" alt="Nhanho Mobility logo" className={cn('w-auto transition-all', scrolled ? 'h-12' : 'h-14 md:h-16')} />
+        {/*
+          Flat, theme-adaptive logo — real text + a simple currentColor icon, not the
+          3D badge (that's a detailed graphic with its own baked-in dark background,
+          so it reads as a dark sticker once the header goes light, and its detail
+          disappears at navbar height anyway). Same treatment on every page: white
+          over Home's dark hero, dark navy once the header is light, white in dark mode.
+        */}
+        <Link to="/" aria-label="Nhanho Mobility home" className="shrink-0">
+          <Logo className={light ? 'text-navy dark:text-white' : 'text-white'} />
         </Link>
 
         <nav className="hidden flex-1 items-center justify-end gap-1 pr-8 lg:flex">
@@ -50,7 +61,7 @@ export default function Navbar() {
                   'rounded-full px-4 py-2 text-sm font-medium transition-colors',
                   isActive
                     ? 'bg-navy text-white dark:bg-white dark:text-navy'
-                    : scrolled
+                    : light
                       ? 'text-navy hover:bg-navy/5 dark:text-white/85 dark:hover:bg-white/10'
                       : 'text-navy hover:bg-navy/5 lg:text-white lg:hover:bg-white/10'
                 )
@@ -62,18 +73,6 @@ export default function Navbar() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            aria-label="Toggle dark mode"
-            className={cn(
-              'rounded-full p-2.5 transition-colors',
-              scrolled
-                ? 'text-navy hover:bg-navy/5 dark:text-white dark:hover:bg-white/10'
-                : 'text-navy hover:bg-navy/5 lg:text-white lg:hover:bg-white/10'
-            )}
-          >
-            {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-          </button>
           <Link
             to="/booking"
             className="hidden rounded-full bg-brand-orange px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-orange/30 transition-all hover:-translate-y-0.5 hover:bg-brand-orange-dark sm:block"
@@ -83,7 +82,7 @@ export default function Navbar() {
           <button
             className={cn(
               'rounded-full p-2.5 lg:hidden',
-              scrolled ? 'text-navy dark:text-white' : 'text-navy'
+              light ? 'text-navy dark:text-white' : 'text-navy'
             )}
             onClick={() => setOpen(!open)}
             aria-label="Menu"

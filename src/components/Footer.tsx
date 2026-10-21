@@ -8,16 +8,27 @@ export default function Footer() {
   const [email, setEmail] = useState('');
 
   return (
-    <footer className="relative overflow-hidden bg-navy-deep text-white">
-      {/* faint road silhouette */}
-      <svg viewBox="0 0 1440 120" className="absolute top-0 h-16 w-full text-white/5" preserveAspectRatio="none" fill="none">
+    <footer className="relative overflow-hidden bg-gradient-to-br from-navy-deep via-navy to-navy-800 text-white">
+      {/* accent line — the two brand colours meeting at the very top edge. Explicit
+          z-10 so it actually paints above the absolutely-positioned layers below,
+          which otherwise stack above it regardless of DOM order. */}
+      <div className="relative z-10 h-1 w-full bg-gradient-to-r from-brand-orange via-brand-orange to-brand-green" />
+
+      {/* road silhouette */}
+      <svg viewBox="0 0 1440 120" className="absolute top-1 h-16 w-full text-white/10" preserveAspectRatio="none" fill="none">
         <path d="M-20 110 C 300 110 380 30 640 30 C 900 30 960 95 1220 85 C 1360 80 1420 50 1460 40" stroke="currentColor" strokeWidth="40" strokeLinecap="round" />
       </svg>
+
+      {/* warm glow behind the logo column */}
+      <div
+        className="pointer-events-none absolute left-0 top-0 h-80 w-80 rounded-full bg-brand-orange/20 blur-3xl"
+        aria-hidden
+      />
 
       <div className="relative mx-auto max-w-7xl px-4 pb-10 pt-20 sm:px-6">
         <div className="grid gap-12 lg:grid-cols-[1.4fr_1fr_1fr_1.3fr]">
           <div>
-            <img src="/images/logo.png" alt="Nhanho Mobility" className="h-16 w-auto rounded-xl bg-white/95 p-1.5" />
+            <img src="/images/logo.png" alt="Nhanho Mobility" className="h-20 w-auto rounded-xl bg-brand-mist p-2" />
             <p className="mt-5 max-w-sm text-sm leading-relaxed text-white/70">
               Safe, reliable, affordable and technology-driven mobility solutions for individuals,
               businesses and institutions across Zimbabwe.
@@ -111,7 +122,17 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-14 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-6 text-xs text-white/50 sm:flex-row">
+        <div className="mt-12 overflow-hidden rounded-2xl border border-white/10">
+          <iframe
+            title="Nhanho Mobility location"
+            src="https://www.google.com/maps?q=Harare,+Zimbabwe&output=embed"
+            className="h-56 w-full grayscale invert-[0.9] contrast-[0.9]"
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+          />
+        </div>
+
+        <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-6 text-xs text-white/50 sm:flex-row">
           <p>© {new Date().getFullYear()} Nhanho Mobility (Private Limited). All rights reserved.</p>
           <p className="flex gap-5">
             <a href="#" className="hover:text-white">Privacy Policy</a>

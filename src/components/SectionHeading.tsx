@@ -17,7 +17,8 @@ export default function SectionHeading({ eyebrow, title, sub, align = 'center', 
       </p>
       <h2
         className={cn(
-          'mt-3 text-3xl font-bold leading-tight sm:text-4xl lg:text-[2.75rem]',
+          'mt-3 max-w-2xl text-3xl font-semibold tracking-tight leading-[1.15] sm:text-4xl lg:text-[2.75rem]',
+          align === 'center' && 'mx-auto',
           dark ? 'text-white' : 'text-navy dark:text-white'
         )}
       >

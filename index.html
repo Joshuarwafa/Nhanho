@@ -15,9 +15,33 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Nhanho Mobility — Zimbabwe's Mobility Solutions Provider" />
     <meta name="twitter:description" content="Safe, reliable, affordable and technology-driven mobility solutions." />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="icon" type="image/png" href="/images/logo.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <style>
+      /* Instant first paint, before any JS (including the app bundle) has loaded —
+         removed automatically the moment React mounts and replaces #root's content. */
+      #boot-splash {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #1c1e24;
+        z-index: 9999;
+      }
+      #boot-splash img {
+        width: 64px;
+        height: 64px;
+        border-radius: 16px;
+        animation: boot-pulse 1.4s ease-in-out infinite;
+      }
+      @keyframes boot-pulse {
+        0%, 100% { opacity: 0.55; transform: scale(0.96); }
+        50% { opacity: 1; transform: scale(1); }
+      }
+    </style>
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -34,7 +58,9 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="boot-splash"><img src="/images/logo.png" alt="" /></div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

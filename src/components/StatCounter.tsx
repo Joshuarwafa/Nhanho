@@ -29,7 +29,7 @@ export default function StatCounter({ value, suffix = '', label }: Props) {
 
   useEffect(() => {
     if (!started) return;
-    const dur = 1600;
+    const dur = 700;
     const t0 = performance.now();
     let raf = 0;
     const tick = (t: number) => {

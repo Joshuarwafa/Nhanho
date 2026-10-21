@@ -7,23 +7,23 @@
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 216 73% 14%;
+    --foreground: 152 73% 14%;
     --card: 0 0% 100%;
-    --card-foreground: 216 73% 14%;
+    --card-foreground: 152 73% 14%;
     --popover: 0 0% 100%;
-    --popover-foreground: 216 73% 14%;
-    --primary: 216 73% 16%;
+    --popover-foreground: 152 73% 14%;
+    --primary: 152 73% 16%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 214 43% 96%;
-    --secondary-foreground: 216 73% 16%;
-    --muted: 214 43% 96%;
-    --muted-foreground: 217 20% 40%;
-    --accent: 214 43% 96%;
-    --accent-foreground: 216 73% 16%;
+    --secondary: 152 43% 96%;
+    --secondary-foreground: 152 73% 16%;
+    --muted: 152 43% 96%;
+    --muted-foreground: 152 20% 40%;
+    --accent: 152 43% 96%;
+    --accent-foreground: 152 73% 16%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 215 30% 90%;
-    --input: 215 30% 88%;
+    --border: 152 30% 90%;
+    --input: 152 30% 88%;
     --ring: 28 90% 54%;
     --radius: 0.75rem;
     --sidebar-background: 0 0% 98%;
@@ -37,24 +37,24 @@
   }
 
   .dark {
-    --background: 218 57% 7%;
+    --background: 152 57% 7%;
     --foreground: 210 40% 96%;
-    --card: 217 50% 10%;
+    --card: 152 50% 10%;
     --card-foreground: 210 40% 96%;
-    --popover: 217 50% 10%;
+    --popover: 152 50% 10%;
     --popover-foreground: 210 40% 96%;
     --primary: 0 0% 98%;
-    --primary-foreground: 216 73% 14%;
-    --secondary: 216 40% 15%;
+    --primary-foreground: 152 73% 14%;
+    --secondary: 152 40% 15%;
     --secondary-foreground: 210 40% 96%;
-    --muted: 216 40% 15%;
-    --muted-foreground: 215 25% 65%;
-    --accent: 216 40% 15%;
+    --muted: 152 40% 15%;
+    --muted-foreground: 152 25% 65%;
+    --accent: 152 40% 15%;
     --accent-foreground: 210 40% 96%;
     --destructive: 0 62.8% 45%;
     --destructive-foreground: 0 0% 98%;
-    --border: 216 35% 18%;
-    --input: 216 35% 18%;
+    --border: 152 35% 18%;
+    --input: 152 35% 18%;
     --ring: 28 90% 54%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
@@ -93,11 +93,11 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: #0b2447;
+    background: #113b28;
     border-radius: 8px;
   }
   .dark ::-webkit-scrollbar-thumb {
-    background: #2b4a75;
+    background: #206f4a;
   }
 }
 
@@ -142,22 +142,40 @@
     transform: translateY(0);
   }
 
+  /* ---------- Sunset hero background: a wide diagonal band of colour
+     (navy -> indigo -> plum -> burnt-orange -> navy) that drifts slowly,
+     tying the hero to the orange CTA below it. */
+  .hero-sunset {
+    background: linear-gradient(
+      115deg,
+      #091f15 0%,
+      #2a2f6b 24%,
+      #5c2f6b 44%,
+      #c2561f 62%,
+      #091f15 86%
+    );
+    background-size: 300% 300%;
+    animation: sunset-shift 26s ease-in-out infinite;
+  }
+
+  /* soft orange glow breathing behind the booking widget */
+  .hero-glow-pulse {
+    animation: glow-pulse 7s ease-in-out infinite;
+  }
+
   /* ---------- Scroll reveal ---------- */
   .reveal {
     opacity: 0;
-    transform: translateY(36px);
-    filter: blur(6px);
+    transform: translateY(12px);
     transition:
-      opacity 0.9s cubic-bezier(0.165, 0.84, 0.44, 1),
-      transform 0.9s cubic-bezier(0.165, 0.84, 0.44, 1),
-      filter 0.9s cubic-bezier(0.165, 0.84, 0.44, 1);
+      opacity 0.3s ease-out,
+      transform 0.3s ease-out;
     transition-delay: var(--reveal-delay, 0ms);
-    will-change: opacity, transform, filter;
+    will-change: opacity, transform;
   }
   .reveal.is-in {
     opacity: 1;
     transform: translateY(0);
-    filter: blur(0);
   }
 
   /* ---------- Road divider ---------- */
@@ -187,8 +205,8 @@
     transition: transform 0.35s cubic-bezier(0.165, 0.84, 0.44, 1), box-shadow 0.35s ease;
   }
   .lift:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 24px 48px -16px rgba(11, 36, 71, 0.22);
+    transform: translateY(-6px);
+    box-shadow: 0 16px 32px -18px rgba(17, 59, 40, 0.14);
   }
 
   .glass {
@@ -248,5 +266,23 @@
   }
   100% {
     box-shadow: 0 0 0 0 rgba(108, 179, 63, 0);
+  }
+}
+
+@keyframes sunset-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes glow-pulse {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
   }
 }

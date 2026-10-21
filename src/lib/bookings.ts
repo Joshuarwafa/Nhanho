@@ -19,7 +19,10 @@ function toISODate(d: Date) {
  * unavailable if it's manually flagged (maintenance/out of service) or has a
  * confirmed/active booking that overlaps the requested dates.
  */
-export async function fetchFleetAvailability(pickup: Date, days: number): Promise<Record<string, Availability>> {
+export async function fetchFleetAvailability(
+  pickup: Date,
+  days: number
+): Promise<{ availability: Record<string, Availability>; availableFrom: Record<string, Date> }> {
   const start = toISODate(pickup);
   const end = toISODate(new Date(pickup.getTime() + Math.max(1, days) * 86400000));
 
@@ -27,7 +30,7 @@ export async function fetchFleetAvailability(pickup: Date, days: number): Promis
     supabase.from('vehicles').select('id, status'),
     supabase
       .from('bookings')
-      .select('vehicle_id')
+      .select('vehicle_id, end_date')
       .in('status', HOLDING_STATUSES)
       .lte('start_date', end)
       .gte('end_date', start),
@@ -36,14 +39,20 @@ export async function fetchFleetAvailability(pickup: Date, days: number): Promis
   if (vErr) throw vErr;
   if (bErr) throw bErr;
 
-  const map: Record<string, Availability> = {};
+  const availability: Record<string, Availability> = {};
+  const availableFrom: Record<string, Date> = {};
   for (const v of vehicles ?? []) {
-    map[v.id] = UNAVAILABLE_VEHICLE_STATUSES.includes(v.status) ? 'unavailable' : 'available';
+    availability[v.id] = UNAVAILABLE_VEHICLE_STATUSES.includes(v.status) ? 'unavailable' : 'available';
   }
   for (const b of bookings ?? []) {
-    if (map[b.vehicle_id] !== 'unavailable') map[b.vehicle_id] = 'booked';
+    if (availability[b.vehicle_id] === 'unavailable') continue;
+    availability[b.vehicle_id] = 'booked';
+    // "Available from" = the day after the latest conflicting booking ends.
+    const freeFrom = new Date(new Date(b.end_date).getTime() + 86400000);
+    const current = availableFrom[b.vehicle_id];
+    if (!current || freeFrom > current) availableFrom[b.vehicle_id] = freeFrom;
   }
-  return map;
+  return { availability, availableFrom };
 }
 
 /** Every upcoming held (pending-payment or confirmed) date range for one vehicle — powers the availability calendar. */

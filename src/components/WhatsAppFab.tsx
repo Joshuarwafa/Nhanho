@@ -8,11 +8,10 @@ export default function WhatsAppFab() {
       target="_blank"
       rel="noreferrer"
       aria-label="Chat on WhatsApp"
-      className="fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full bg-brand-green px-4 py-3.5 text-sm font-semibold text-white shadow-xl shadow-brand-green/30 transition-transform hover:-translate-y-1"
-      style={{ animation: 'pulse-ring 2.4s infinite' }}
+      title="Chat on WhatsApp"
+      className="fixed bottom-6 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-navy text-white shadow-lg shadow-navy/25 transition-transform hover:-translate-y-1 hover:bg-navy-700"
     >
       <MessageCircle className="h-5 w-5" />
-      <span className="hidden sm:inline">Chat with us</span>
     </a>
   );
 }

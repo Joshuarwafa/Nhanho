@@ -63,6 +63,9 @@ export default function HeroSlider() {
             loading={i === 0 ? 'eager' : 'lazy'}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-navy-deep via-navy-deep/45 to-navy-deep/30" />
+          {/* Sunset — a slow diagonal colour sweep (navy → indigo → plum → burnt-orange →
+              navy) tinting the photo, tying the hero to the orange CTA below it. */}
+          <div className="hero-sunset absolute inset-0 mix-blend-soft-light opacity-[0.55]" />
         </div>
       ))}
 
@@ -73,7 +76,7 @@ export default function HeroSlider() {
             <p className="font-display text-xs font-bold uppercase tracking-[0.35em] text-brand-orange sm:text-sm">
               {s.kicker}
             </p>
-            <h1 className="mt-4 font-display text-5xl font-bold leading-[1.02] text-white sm:text-6xl lg:text-7xl">
+            <h1 className="mt-4 font-display text-5xl font-semibold tracking-tight leading-[1.02] text-white sm:text-6xl lg:text-7xl">
               {s.title.map((w, wi) => (
                 <span key={wi} className="inline-block overflow-hidden pb-1 align-bottom">
                   <span className="hero-word" style={{ transitionDelay: `${wi * 90}ms` }}>
@@ -102,6 +105,12 @@ export default function HeroSlider() {
           </div>
         ))}
       </div>
+
+      {/* soft orange glow breathing behind the booking widget, like a sunrise under it */}
+      <div
+        className="hero-glow-pulse pointer-events-none absolute inset-x-0 bottom-0 h-72 bg-gradient-to-t from-brand-orange/35 via-brand-orange/10 to-transparent"
+        aria-hidden
+      />
 
       {/* booking widget */}
       <div className="absolute inset-x-0 bottom-20 z-10 px-4 sm:px-6 md:bottom-16">

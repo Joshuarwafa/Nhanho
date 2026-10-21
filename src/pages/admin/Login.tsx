@@ -36,7 +36,7 @@ export default function AdminLogin() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-brand-mist px-4 dark:bg-navy-deep">
       <div className="w-full max-w-sm rounded-3xl border border-navy/8 bg-card p-8 shadow-xl shadow-navy/5 dark:border-white/10">
-        <img src="/images/logo.png" alt="Nhanho Mobility" className="h-12 w-auto" />
+        <img src="/images/logo.png" alt="Nhanho Mobility" className="h-14 w-auto rounded-lg bg-brand-mist p-1.5" />
         <h1 className="mt-5 font-display text-xl font-bold text-navy dark:text-white">Admin sign in</h1>
         <p className="mt-1 text-sm text-muted-foreground">Staff access only.</p>
 

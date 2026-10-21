@@ -4,6 +4,7 @@ import { fetchFleetAvailability, type Availability } from '@/lib/bookings';
 /** Live availability for every vehicle over [pickup, pickup + days), refetched whenever the range changes. */
 export function useFleetAvailability(pickup: Date | undefined, days: number) {
   const [map, setMap] = useState<Record<string, Availability>>({});
+  const [availableFrom, setAvailableFrom] = useState<Record<string, Date>>({});
   const [loading, setLoading] = useState(() => Boolean(pickup) && days > 0);
 
   useEffect(() => {
@@ -11,8 +12,11 @@ export function useFleetAvailability(pickup: Date | undefined, days: number) {
     let cancelled = false;
     setLoading(true);
     fetchFleetAvailability(pickup, days)
-      .then((m) => {
-        if (!cancelled) setMap(m);
+      .then(({ availability, availableFrom }) => {
+        if (!cancelled) {
+          setMap(availability);
+          setAvailableFrom(availableFrom);
+        }
       })
       .catch((err) => {
         console.error('Failed to load fleet availability', err);
@@ -25,5 +29,5 @@ export function useFleetAvailability(pickup: Date | undefined, days: number) {
     };
   }, [pickup, days]);
 
-  return { availability: map, loading };
+  return { availability: map, availableFrom, loading };
 }
