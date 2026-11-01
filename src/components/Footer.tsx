@@ -8,7 +8,7 @@ export default function Footer() {
   const [email, setEmail] = useState('');
 
   return (
-    <footer className="relative overflow-hidden bg-gradient-to-br from-navy-deep via-navy to-navy-800 text-white">
+    <footer className="relative overflow-hidden bg-gradient-to-br from-navy-deep via-navy to-navy-800 text-white print:hidden">
       {/* accent line — the two brand colours meeting at the very top edge. Explicit
           z-10 so it actually paints above the absolutely-positioned layers below,
           which otherwise stack above it regardless of DOM order. */}

@@ -9,7 +9,7 @@ export default function WhatsAppFab() {
       rel="noreferrer"
       aria-label="Chat on WhatsApp"
       title="Chat on WhatsApp"
-      className="fixed bottom-6 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-navy text-white shadow-lg shadow-navy/25 transition-transform hover:-translate-y-1 hover:bg-navy-700"
+      className="fixed bottom-6 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-navy text-white shadow-lg shadow-navy/25 transition-transform hover:-translate-y-1 hover:bg-navy-700 print:hidden"
     >
       <MessageCircle className="h-5 w-5" />
     </a>

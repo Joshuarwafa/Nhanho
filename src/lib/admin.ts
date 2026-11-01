@@ -132,11 +132,17 @@ export async function createVehicle(input: NewVehicleInput) {
 }
 
 /**
- * Removes a vehicle entirely. If it has existing bookings (foreign key reference),
- * Postgres rejects the delete rather than orphaning booking history — callers should
- * catch that and point staff at "mark out of service" instead, which just hides it.
+ * Removes a vehicle entirely. Its status-change history has no real value once the
+ * vehicle itself is gone, so that's cleared first — otherwise it alone would block the
+ * delete even for a vehicle that was never actually booked. Real bookings are a
+ * separate foreign key with no such cleanup: Postgres rejects the delete rather than
+ * orphaning booking history, and callers should catch that and point staff at "mark
+ * out of service" instead, which just hides it.
  */
 export async function deleteVehicle(id: string) {
+  const { error: logErr } = await supabase.from('vehicle_status_log').delete().eq('vehicle_id', id);
+  if (logErr) throw logErr;
+
   const { error } = await supabase.from('vehicles').delete().eq('id', id);
   if (error) throw error;
 }

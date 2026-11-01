@@ -18,6 +18,7 @@ import {
   DRIVER_OPTIONS, EXTRAS, LOCATIONS,
   formatUSD, rateFor, type Vehicle,
 } from '@/data/fleet';
+import { CONTACT } from '@/data/content';
 import { useFleet } from '@/hooks/useFleet';
 import { useFleetAvailability } from '@/hooks/useFleetAvailability';
 import { createBooking, BookingConflictError, PAYMENT_DEADLINE_HOURS } from '@/lib/bookings';
@@ -166,7 +167,7 @@ export default function Booking() {
       />
 
       {/* stepper */}
-      <div className="sticky top-[64px] z-30 border-b border-navy/8 bg-background/90 backdrop-blur-xl dark:border-white/10">
+      <div className="sticky top-[64px] z-30 border-b border-navy/8 bg-background/90 backdrop-blur-xl dark:border-white/10 print:hidden">
         <div className="mx-auto flex max-w-7xl items-center gap-1 overflow-x-auto px-4 py-3 sm:px-6">
           {STEPS.map((s, i) => (
             <div key={s} className="flex shrink-0 items-center gap-1">
@@ -452,7 +453,7 @@ export default function Booking() {
           {/* STEP 5 — confirmation */}
           {step === 5 && quote && vehicle && (
             <Reveal>
-              <div className="rounded-3xl border border-brand-orange/30 bg-brand-orange/5 p-8 text-center sm:p-12">
+              <div className="rounded-3xl border border-brand-orange/30 bg-brand-orange/5 p-8 text-center sm:p-12 print:hidden">
                 <span className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-brand-orange text-white" style={{ animation: 'pulse-ring 2s infinite' }}>
                   <Wallet className="h-9 w-9" />
                 </span>
@@ -492,6 +493,174 @@ export default function Booking() {
             </Reveal>
           )}
 
+          {/* Print-only invoice — hidden on screen, shown (and isolated from the rest
+              of the app) only when "Print invoice" triggers window.print(). Numbers
+              mirror the live quote exactly: nothing here is restated by hand. */}
+          {step === 5 && quote && vehicle && (
+            <div className="invoice-print hidden bg-white p-10 text-navy print:block">
+              <div className="flex items-start justify-between border-b border-navy/15 pb-6">
+                <div>
+                  <p className="font-display text-xl font-extrabold">
+                    NHANHO <span className="text-brand-orange">MOBILITY</span>
+                  </p>
+                  <p className="mt-1 text-xs text-gray-500">Nhanho Mobility (Private) Limited</p>
+                  <p className="text-xs text-gray-500">{CONTACT.address}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-display text-2xl font-bold">INVOICE</p>
+                  <p className="mt-1 text-xs text-gray-500">No. {bookingRef}</p>
+                  <p className="text-xs text-gray-500">Issued {format(new Date(), 'd MMM yyyy')}</p>
+                </div>
+              </div>
+
+              <div className="mt-6 flex items-center justify-between rounded-lg bg-red-100 px-4 py-2.5">
+                <p className="font-display text-lg font-bold text-red-700">UNPAID</p>
+                {paymentDeadline && (
+                  <p className="text-xs font-semibold text-red-700">Due {format(paymentDeadline, "d MMM yyyy 'at' HH:mm")}</p>
+                )}
+              </div>
+
+              <div className="mt-6 grid grid-cols-2 gap-8 text-sm">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Bill to</p>
+                  <p className="mt-1.5 font-semibold">{customer.name}</p>
+                  <p>{customer.email}</p>
+                  <p>{customer.phone}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Booking details</p>
+                  <p className="mt-1.5">
+                    Vehicle <span className="font-semibold">{vehicle.name}</span>
+                  </p>
+                  <p>
+                    {pickup && format(pickup, 'd MMM yyyy')} → {dropoff && format(dropoff, 'd MMM yyyy')} ({days} day{days === 1 ? '' : 's'})
+                  </p>
+                  <p>
+                    Pickup {location}
+                    {destination && <> · Drop {destination}</>}
+                  </p>
+                </div>
+              </div>
+
+              <table className="mt-8 w-full border-collapse text-sm">
+                <thead>
+                  <tr className="border-b-2 border-navy text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
+                    <th className="py-2 font-bold">Description</th>
+                    <th className="py-2 text-right font-bold">Days</th>
+                    <th className="py-2 text-right font-bold">Rate</th>
+                    <th className="py-2 text-right font-bold">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b border-navy/10">
+                    <td className="py-2">{vehicle.name} rental ({quote.tier})</td>
+                    <td className="py-2 text-right">{days}</td>
+                    <td className="py-2 text-right">{formatUSD(quote.perDay)}</td>
+                    <td className="py-2 text-right">{formatUSD(quote.base)}</td>
+                  </tr>
+                  {quote.driverCost > 0 && (
+                    <tr className="border-b border-navy/10">
+                      <td className="py-2">Professional chauffeur</td>
+                      <td className="py-2 text-right">{days}</td>
+                      <td className="py-2 text-right">{formatUSD(25)}</td>
+                      <td className="py-2 text-right">{formatUSD(quote.driverCost)}</td>
+                    </tr>
+                  )}
+                  {extras.map((id) => {
+                    const e = EXTRAS.find((x) => x.id === id);
+                    if (!e) return null;
+                    return (
+                      <tr key={id} className="border-b border-navy/10">
+                        <td className="py-2">{e.label}</td>
+                        <td className="py-2 text-right">{days}</td>
+                        <td className="py-2 text-right">{formatUSD(e.perDay)}</td>
+                        <td className="py-2 text-right">{formatUSD(e.perDay * days)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+
+              <div className="mt-6 flex justify-end">
+                <div className="w-72 space-y-1.5 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Subtotal</span>
+                    <span>{formatUSD(quote.subtotal)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">VAT 15% (included)</span>
+                    <span>{formatUSD(quote.vat)}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-navy/20 pt-1.5 font-bold">
+                    <span>TOTAL</span>
+                    <span>{formatUSD(quote.total)}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-500">
+                    <span>Amount paid</span>
+                    <span>{formatUSD(0)}</span>
+                  </div>
+                  <div className="flex justify-between rounded bg-navy px-3 py-2 font-bold text-white">
+                    <span>BALANCE DUE</span>
+                    <span>{formatUSD(quote.total)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 grid grid-cols-2 gap-8 text-sm">
+                <div className="flex justify-between border-b border-navy/10 py-1.5">
+                  <span className="text-gray-500">Payment method</span>
+                  <span>—</span>
+                </div>
+                <div className="flex justify-between border-b border-navy/10 py-1.5">
+                  <span className="text-gray-500">Last payment</span>
+                  <span>—</span>
+                </div>
+              </div>
+
+              <div className="mt-8 grid grid-cols-2 gap-8 text-sm">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Payment details</p>
+                  <dl className="mt-2 space-y-1">
+                    {[
+                      ['Bank', 'CABS'],
+                      ['Account name', 'Advocate Edley Mubaiwa'],
+                      ['Account no.', '1127111027'],
+                      ['Branch', 'Avondale'],
+                      ['Mobile money', `EcoCash · ${CONTACT.phone1}`],
+                      ['Payment reference', bookingRef ?? ''],
+                    ].map(([k, val]) => (
+                      <div key={k} className="flex justify-between">
+                        <dt className="text-gray-500">{k}</dt>
+                        <dd className="font-semibold">{val}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Terms</p>
+                  <p className="mt-2 text-xs leading-relaxed text-gray-500">
+                    Payment is due by the due date shown. Please quote the invoice number as your payment reference.
+                    Rental is charged per commenced 24-hour period from collection to return, minimum 1 day.
+                    All amounts are in USD and include VAT.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-10 grid grid-cols-2 gap-8 text-xs text-gray-500">
+                <div className="border-t border-navy/30 pt-2">Issued by (name &amp; signature)</div>
+                <div className="border-t border-navy/30 pt-2">Customer acknowledgement</div>
+              </div>
+
+              <div className="mt-10 text-center">
+                <p className="font-display text-sm font-bold text-brand-green-dark">Thank you for choosing Nhanho Mobility.</p>
+                <p className="mt-1 text-xs text-gray-500">
+                  Nhanho Mobility (Private) Limited · {CONTACT.phone1} · booking@{CONTACT.domain}
+                </p>
+                <div className="mt-4 h-1.5 w-full bg-gradient-to-r from-navy via-brand-green to-brand-orange" />
+              </div>
+            </div>
+          )}
+
           {/* nav buttons */}
           {step < 5 && (
             <div className="mt-10 flex items-center justify-between">
@@ -516,7 +685,7 @@ export default function Booking() {
         </div>
 
         {/* ---------------- summary sidebar ---------------- */}
-        <aside className="lg:sticky lg:top-36 lg:self-start">
+        <aside className="lg:sticky lg:top-36 lg:self-start print:hidden">
           <Reveal className="overflow-hidden rounded-3xl border border-navy/8 bg-card shadow-xl shadow-navy/5 dark:border-white/10">
             <div className="bg-navy p-5 text-white">
               <p className="font-display text-xs font-bold uppercase tracking-[0.25em] text-brand-orange">Your rental</p>

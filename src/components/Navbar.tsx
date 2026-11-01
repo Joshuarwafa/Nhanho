@@ -35,7 +35,7 @@ export default function Navbar() {
   return (
     <header
       className={cn(
-        'fixed inset-x-0 top-0 z-50 transition-all duration-500',
+        'fixed inset-x-0 top-0 z-50 transition-all duration-500 print:hidden',
         light ? 'glass shadow-lg shadow-navy/5 py-2' : 'bg-transparent py-4'
       )}
     >

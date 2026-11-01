@@ -224,6 +224,32 @@
   }
 }
 
+/* ---------- Print: isolate the invoice, hide the rest of the app chrome ---------- */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .invoice-print,
+  .invoice-print * {
+    visibility: visible;
+  }
+  .invoice-print {
+    /* top/left only, height auto — pinning `bottom` too (e.g. via `inset: 0`) stretches
+       this to match the rest of the (still invisible-but-space-occupying) page behind
+       it, which is what was printing a stack of blank pages after the real content. */
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: auto;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  @page {
+    margin: 12mm;
+  }
+}
+
 @keyframes road-dash-move {
   to {
     stroke-dashoffset: -40;
