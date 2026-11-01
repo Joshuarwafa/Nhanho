@@ -158,11 +158,6 @@
     animation: sunset-shift 26s ease-in-out infinite;
   }
 
-  /* soft orange glow breathing behind the booking widget */
-  .hero-glow-pulse {
-    animation: glow-pulse 7s ease-in-out infinite;
-  }
-
   /* ---------- Scroll reveal ---------- */
   .reveal {
     opacity: 0;
@@ -301,14 +296,5 @@
   }
   50% {
     background-position: 100% 50%;
-  }
-}
-
-@keyframes glow-pulse {
-  0%, 100% {
-    opacity: 0.5;
-  }
-  50% {
-    opacity: 1;
   }
 }

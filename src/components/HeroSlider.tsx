@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { ArrowRight, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import BookingWidget from './BookingWidget';
 import MagneticLink from './MagneticLink';
 
 const DURATION = 6500;
@@ -70,7 +69,7 @@ export default function HeroSlider() {
       ))}
 
       {/* copy */}
-      <div className="relative mx-auto flex min-h-[100svh] max-w-7xl flex-col justify-center px-4 pb-48 pt-32 sm:px-6 md:pb-40">
+      <div className="relative mx-auto flex min-h-[100svh] max-w-7xl flex-col justify-center px-4 pb-24 pt-32 sm:px-6 md:pb-20">
         {SLIDES.map((s, i) => (
           <div key={i} className={cn('hero-copy absolute max-w-3xl px-4 sm:px-0', i === idx && 'is-active')}>
             <p className="font-display text-xs font-bold uppercase tracking-[0.35em] text-brand-orange sm:text-sm">
@@ -104,19 +103,6 @@ export default function HeroSlider() {
             </div>
           </div>
         ))}
-      </div>
-
-      {/* soft orange glow breathing behind the booking widget, like a sunrise under it */}
-      <div
-        className="hero-glow-pulse pointer-events-none absolute inset-x-0 bottom-0 h-72 bg-gradient-to-t from-brand-orange/35 via-brand-orange/10 to-transparent"
-        aria-hidden
-      />
-
-      {/* booking widget */}
-      <div className="absolute inset-x-0 bottom-20 z-10 px-4 sm:px-6 md:bottom-16">
-        <div className="mx-auto max-w-5xl">
-          <BookingWidget />
-        </div>
       </div>
 
       {/* progress indicators */}
