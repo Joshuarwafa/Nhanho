@@ -51,7 +51,7 @@ export default function Navbar() {
           <Logo className={light ? 'text-navy dark:text-white' : 'text-white'} />
         </Link>
 
-        <nav className="hidden flex-1 items-center justify-end gap-1 pr-8 lg:flex">
+        <nav className="hidden flex-1 items-center justify-end gap-1 pr-8 xl:flex">
           {LINKS.map((l) => (
             <NavLink
               key={l.to}
@@ -63,7 +63,7 @@ export default function Navbar() {
                     ? 'bg-navy text-white dark:bg-white dark:text-navy'
                     : light
                       ? 'text-navy hover:bg-navy/5 dark:text-white/85 dark:hover:bg-white/10'
-                      : 'text-navy hover:bg-navy/5 lg:text-white lg:hover:bg-white/10'
+                      : 'text-navy hover:bg-navy/5 xl:text-white xl:hover:bg-white/10'
                 )
               }
             >
@@ -81,7 +81,7 @@ export default function Navbar() {
           </Link>
           <button
             className={cn(
-              'rounded-full p-2.5 lg:hidden',
+              'rounded-full p-2.5 xl:hidden',
               light ? 'text-navy dark:text-white' : 'text-navy'
             )}
             onClick={() => setOpen(!open)}
@@ -95,7 +95,7 @@ export default function Navbar() {
       {/* mobile menu */}
       <div
         className={cn(
-          'glass overflow-hidden transition-all duration-500 lg:hidden',
+          'glass overflow-hidden transition-all duration-500 xl:hidden',
           open ? 'mt-2 max-h-[420px] border-t border-navy/10 dark:border-white/10' : 'max-h-0'
         )}
       >
