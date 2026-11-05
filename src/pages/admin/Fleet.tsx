@@ -1,12 +1,12 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type Dispatch, type ReactNode, type RefObject, type SetStateAction } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { ChevronDown, History, ImagePlus, Loader2, Plus, Trash2, X } from 'lucide-react';
+import { ChevronDown, History, ImagePlus, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { createVehicle, deleteVehicle, fetchAllVehicles, fetchStatusLog, setVehicleStatus, uploadVehiclePhoto } from '@/lib/admin';
+import { createVehicle, deleteVehicle, fetchAllVehicles, fetchStatusLog, setVehicleStatus, updateVehicle, uploadVehiclePhoto } from '@/lib/admin';
 import { useAdminSession } from '@/hooks/useAdminSession';
 import { CATEGORIES } from '@/data/fleet';
 import type { VehicleRow, VehicleStatus, VehicleStatusLogRow } from '@/types/database';
@@ -72,21 +72,164 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-const EMPTY_FORM = {
+interface VehicleFormState {
+  name: string;
+  categoryId: string;
+  seats: string;
+  bags: string;
+  year: string;
+  transmission: 'Automatic' | 'Manual';
+  fuel: 'Petrol' | 'Diesel' | 'Hybrid';
+  daily: string;
+  weekly: string;
+  monthly: string;
+  features: string;
+  popular: boolean;
+}
+
+const BLANK_VEHICLE_FORM: VehicleFormState = {
   name: '',
   categoryId: CATEGORIES[0].id,
-  units: '1',
   seats: '5',
   bags: '2',
   year: String(new Date().getFullYear()),
-  transmission: 'Automatic' as 'Automatic' | 'Manual',
-  fuel: 'Petrol' as 'Petrol' | 'Diesel' | 'Hybrid',
+  transmission: 'Automatic',
+  fuel: 'Petrol',
   daily: '',
   weekly: '',
   monthly: '',
   features: '',
   popular: false,
 };
+
+function rowToForm(v: VehicleRow): VehicleFormState {
+  return {
+    name: v.name,
+    categoryId: v.category,
+    seats: String(v.seats),
+    bags: String(v.bags),
+    year: String(v.year),
+    transmission: v.transmission,
+    fuel: v.fuel,
+    daily: String(v.daily),
+    weekly: String(v.weekly),
+    monthly: String(v.monthly),
+    features: v.features.join(', '),
+    popular: v.popular,
+  };
+}
+
+/** Photo box shared by add/edit — shows the picked file, or (edit only) the vehicle's
+ * current photo with a hover "change" overlay; the X only appears once a new file is
+ * picked, and clears back to that fallback rather than to nothing. */
+function PhotoPicker({
+  photoPreview,
+  currentImage,
+  fileRef,
+  onPick,
+  onClear,
+}: {
+  photoPreview: string | null;
+  currentImage?: string;
+  fileRef: RefObject<HTMLInputElement | null>;
+  onPick: (file: File | undefined) => void;
+  onClear: () => void;
+}) {
+  const shown = photoPreview ?? currentImage ?? null;
+  return (
+    <>
+      <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => onPick(e.target.files?.[0])} />
+      {shown ? (
+        <div className="group/photo relative overflow-hidden rounded-2xl">
+          <img src={shown} alt="" className="aspect-[3/2] w-full object-cover" />
+          <button
+            onClick={() => fileRef.current?.click()}
+            className="absolute inset-0 flex items-center justify-center gap-2 bg-black/0 text-transparent transition-all group-hover/photo:bg-black/40 group-hover/photo:text-white"
+          >
+            <ImagePlus className="h-5 w-5" />
+            <span className="text-xs font-semibold">Change photo</span>
+          </button>
+          {photoPreview && (
+            <button
+              onClick={onClear}
+              className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white"
+              aria-label="Undo photo change"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      ) : (
+        <button
+          onClick={() => fileRef.current?.click()}
+          className="flex aspect-[3/2] w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-navy/20 text-muted-foreground transition-colors hover:border-brand-orange hover:text-brand-orange dark:border-white/20"
+        >
+          <ImagePlus className="h-6 w-6" />
+          <span className="text-xs font-semibold">Click to add a photo</span>
+        </button>
+      )}
+    </>
+  );
+}
+
+/** Every field shared by add/edit except name, category and photo (each dialog lays
+ * those out differently — add pairs category with a units count, edit doesn't need one). */
+function VehicleFormFields<T extends VehicleFormState>({ form, setForm }: { form: T; setForm: Dispatch<SetStateAction<T>> }) {
+  return (
+    <>
+      <div className="grid grid-cols-3 gap-3">
+        <Field label="Seats">
+          <Input type="number" min="1" value={form.seats} onChange={(e) => setForm((f) => ({ ...f, seats: e.target.value }))} className={fieldCls} />
+        </Field>
+        <Field label="Bags">
+          <Input type="number" min="0" value={form.bags} onChange={(e) => setForm((f) => ({ ...f, bags: e.target.value }))} className={fieldCls} />
+        </Field>
+        <Field label="Year">
+          <Input type="number" value={form.year} onChange={(e) => setForm((f) => ({ ...f, year: e.target.value }))} className={fieldCls} />
+        </Field>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Transmission">
+          <select value={form.transmission} onChange={(e) => setForm((f) => ({ ...f, transmission: e.target.value as typeof f.transmission }))} className={selectCls}>
+            <option value="Automatic">Automatic</option>
+            <option value="Manual">Manual</option>
+          </select>
+        </Field>
+        <Field label="Fuel">
+          <select value={form.fuel} onChange={(e) => setForm((f) => ({ ...f, fuel: e.target.value as typeof f.fuel }))} className={selectCls}>
+            <option value="Petrol">Petrol</option>
+            <option value="Diesel">Diesel</option>
+            <option value="Hybrid">Hybrid</option>
+          </select>
+        </Field>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        <Field label="Daily (USD)">
+          <Input type="number" min="0" step="0.01" value={form.daily} onChange={(e) => setForm((f) => ({ ...f, daily: e.target.value }))} className={fieldCls} />
+        </Field>
+        <Field label="Weekly/day">
+          <Input type="number" min="0" step="0.01" value={form.weekly} onChange={(e) => setForm((f) => ({ ...f, weekly: e.target.value }))} className={fieldCls} />
+        </Field>
+        <Field label="Monthly/day">
+          <Input type="number" min="0" step="0.01" value={form.monthly} onChange={(e) => setForm((f) => ({ ...f, monthly: e.target.value }))} className={fieldCls} />
+        </Field>
+      </div>
+
+      <Field label="Features (comma-separated)">
+        <Input value={form.features} onChange={(e) => setForm((f) => ({ ...f, features: e.target.value }))} placeholder="Air conditioning, Bluetooth audio, …" className={fieldCls} />
+      </Field>
+
+      <label className="flex items-center gap-2 text-sm font-medium text-navy dark:text-white">
+        <input type="checkbox" checked={form.popular} onChange={(e) => setForm((f) => ({ ...f, popular: e.target.checked }))} className="h-4 w-4 rounded accent-brand-orange" />
+        Mark as popular
+      </label>
+    </>
+  );
+}
+
+const EMPTY_FORM = { ...BLANK_VEHICLE_FORM, units: '1' };
 
 function AddVehicleDialog({ onCreated }: { onCreated: () => void }) {
   const [open, setOpen] = useState(false);
@@ -176,27 +319,12 @@ function AddVehicleDialog({ onCreated }: { onCreated: () => void }) {
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => onPickPhoto(e.target.files?.[0])} />
-          {photoPreview ? (
-            <div className="relative overflow-hidden rounded-2xl">
-              <img src={photoPreview} alt="" className="aspect-[3/2] w-full object-cover" />
-              <button
-                onClick={() => { setPhoto(null); setPhotoPreview(null); }}
-                className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white"
-                aria-label="Remove photo"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => fileRef.current?.click()}
-              className="flex aspect-[3/2] w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-navy/20 text-muted-foreground transition-colors hover:border-brand-orange hover:text-brand-orange dark:border-white/20"
-            >
-              <ImagePlus className="h-6 w-6" />
-              <span className="text-xs font-semibold">Click to add a photo</span>
-            </button>
-          )}
+          <PhotoPicker
+            photoPreview={photoPreview}
+            fileRef={fileRef}
+            onPick={onPickPhoto}
+            onClear={() => { setPhoto(null); setPhotoPreview(null); }}
+          />
 
           <Field label="Model name">
             <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="e.g. Toyota Hilux" className={fieldCls} />
@@ -227,54 +355,7 @@ function AddVehicleDialog({ onCreated }: { onCreated: () => void }) {
             </Field>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            <Field label="Seats">
-              <Input type="number" min="1" value={form.seats} onChange={(e) => setForm((f) => ({ ...f, seats: e.target.value }))} className={fieldCls} />
-            </Field>
-            <Field label="Bags">
-              <Input type="number" min="0" value={form.bags} onChange={(e) => setForm((f) => ({ ...f, bags: e.target.value }))} className={fieldCls} />
-            </Field>
-            <Field label="Year">
-              <Input type="number" value={form.year} onChange={(e) => setForm((f) => ({ ...f, year: e.target.value }))} className={fieldCls} />
-            </Field>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Transmission">
-              <select value={form.transmission} onChange={(e) => setForm((f) => ({ ...f, transmission: e.target.value as typeof f.transmission }))} className={selectCls}>
-                <option value="Automatic">Automatic</option>
-                <option value="Manual">Manual</option>
-              </select>
-            </Field>
-            <Field label="Fuel">
-              <select value={form.fuel} onChange={(e) => setForm((f) => ({ ...f, fuel: e.target.value as typeof f.fuel }))} className={selectCls}>
-                <option value="Petrol">Petrol</option>
-                <option value="Diesel">Diesel</option>
-                <option value="Hybrid">Hybrid</option>
-              </select>
-            </Field>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3">
-            <Field label="Daily (USD)">
-              <Input type="number" min="0" step="0.01" value={form.daily} onChange={(e) => setForm((f) => ({ ...f, daily: e.target.value }))} className={fieldCls} />
-            </Field>
-            <Field label="Weekly/day">
-              <Input type="number" min="0" step="0.01" value={form.weekly} onChange={(e) => setForm((f) => ({ ...f, weekly: e.target.value }))} className={fieldCls} />
-            </Field>
-            <Field label="Monthly/day">
-              <Input type="number" min="0" step="0.01" value={form.monthly} onChange={(e) => setForm((f) => ({ ...f, monthly: e.target.value }))} className={fieldCls} />
-            </Field>
-          </div>
-
-          <Field label="Features (comma-separated)">
-            <Input value={form.features} onChange={(e) => setForm((f) => ({ ...f, features: e.target.value }))} placeholder="Air conditioning, Bluetooth audio, …" className={fieldCls} />
-          </Field>
-
-          <label className="flex items-center gap-2 text-sm font-medium text-navy dark:text-white">
-            <input type="checkbox" checked={form.popular} onChange={(e) => setForm((f) => ({ ...f, popular: e.target.checked }))} className="h-4 w-4 rounded accent-brand-orange" />
-            Mark as popular
-          </label>
+          <VehicleFormFields form={form} setForm={setForm} />
         </div>
 
         <DialogFooter>
@@ -285,6 +366,126 @@ function AddVehicleDialog({ onCreated }: { onCreated: () => void }) {
           >
             {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
             Add vehicle
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EditVehicleDialog({ vehicle, onUpdated }: { vehicle: VehicleRow; onUpdated: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState<VehicleFormState>(() => rowToForm(vehicle));
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  function openDialog() {
+    setForm(rowToForm(vehicle));
+    setPhoto(null);
+    setPhotoPreview(null);
+    setOpen(true);
+  }
+
+  function onPickPhoto(file: File | undefined) {
+    if (!file) return;
+    setPhoto(file);
+    setPhotoPreview(URL.createObjectURL(file));
+  }
+
+  async function submit() {
+    const name = form.name.trim();
+    const daily = Number(form.daily);
+    const weekly = Number(form.weekly);
+    const monthly = Number(form.monthly);
+    const seats = Number(form.seats);
+    const bags = Number(form.bags);
+    const year = Number(form.year);
+
+    if (!name) return toast.error('Enter a model name');
+    if (!daily || daily <= 0) return toast.error('Enter a valid daily rate');
+    if (!weekly || weekly <= 0) return toast.error('Enter a valid weekly rate');
+    if (!monthly || monthly <= 0) return toast.error('Enter a valid monthly rate');
+
+    setSubmitting(true);
+    try {
+      const image = photo ? await uploadVehiclePhoto(photo) : vehicle.image;
+      const category = CATEGORIES.find((c) => c.id === form.categoryId)!;
+      await updateVehicle(vehicle.id, {
+        name,
+        category: category.id,
+        category_label: category.label,
+        image,
+        seats,
+        bags,
+        transmission: form.transmission,
+        fuel: form.fuel,
+        year,
+        daily,
+        weekly,
+        monthly,
+        features: form.features.split(',').map((f) => f.trim()).filter(Boolean),
+        popular: form.popular,
+      });
+      toast.success(`${name} updated`);
+      setOpen(false);
+      onUpdated();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not update vehicle');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <button
+        onClick={openDialog}
+        className="flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-bold text-navy transition-colors hover:bg-navy/5 dark:text-white dark:hover:bg-white/10"
+      >
+        <Pencil className="h-3.5 w-3.5" /> Edit
+      </button>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Edit {vehicle.name}</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          <PhotoPicker
+            photoPreview={photoPreview}
+            currentImage={vehicle.image}
+            fileRef={fileRef}
+            onPick={onPickPhoto}
+            onClear={() => { setPhoto(null); setPhotoPreview(null); }}
+          />
+
+          <Field label="Model name">
+            <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className={fieldCls} />
+            <span className="mt-1 block text-[11px] text-muted-foreground">
+              Keep the same name as this model's other units to keep them grouped together on the public site.
+            </span>
+          </Field>
+
+          <Field label="Category">
+            <select value={form.categoryId} onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))} className={selectCls}>
+              {CATEGORIES.map((c) => (
+                <option key={c.id} value={c.id}>{c.label}</option>
+              ))}
+            </select>
+          </Field>
+
+          <VehicleFormFields form={form} setForm={setForm} />
+        </div>
+
+        <DialogFooter>
+          <button
+            onClick={submit}
+            disabled={submitting}
+            className="flex items-center justify-center gap-2 rounded-full bg-navy px-6 py-2.5 text-sm font-bold text-white transition-colors hover:bg-brand-orange disabled:opacity-60 dark:bg-white dark:text-navy"
+          >
+            {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+            Save changes
           </button>
         </DialogFooter>
       </DialogContent>
@@ -397,6 +598,7 @@ export default function AdminFleet() {
                     ))}
                   </select>
                   {busyId === v.id && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                  <EditVehicleDialog vehicle={v} onUpdated={load} />
                   <button
                     onClick={() => setConfirmDeleteId(v.id)}
                     className="ml-auto flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-bold text-red-600 transition-colors hover:bg-red-500/10 dark:text-red-400"

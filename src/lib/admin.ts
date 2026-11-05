@@ -131,6 +131,12 @@ export async function createVehicle(input: NewVehicleInput) {
   throw new Error('Could not find a free id for this vehicle — try a more distinct name');
 }
 
+/** Updates every editable field on an existing vehicle — id and status are untouched. */
+export async function updateVehicle(id: string, input: NewVehicleInput) {
+  const { error } = await supabase.from('vehicles').update(input).eq('id', id);
+  if (error) throw error;
+}
+
 /**
  * Removes a vehicle entirely. Its status-change history has no real value once the
  * vehicle itself is gone, so that's cleared first — otherwise it alone would block the
