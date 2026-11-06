@@ -533,11 +533,18 @@ export default function AdminFleet() {
       setConfirmDeleteId(null);
       await load();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Could not remove vehicle';
+      // The full object (code/details/hint) only shows up here — that's what
+      // actually explains a delete failure, not just the UI toast text.
+      console.error('deleteVehicle failed', err);
+      const code = (err as { code?: unknown })?.code;
+      const message = (err as { message?: unknown })?.message;
+      const isForeignKey = code === '23503' || (typeof message === 'string' && message.toLowerCase().includes('foreign key'));
       toast.error(
-        msg.toLowerCase().includes('foreign key')
+        isForeignKey
           ? `${v.name} has existing bookings and can't be deleted — mark it "out of service" instead`
-          : msg
+          : typeof message === 'string' && message
+            ? message
+            : 'Could not remove vehicle — open the browser console for details'
       );
     } finally {
       setBusyId(null);
